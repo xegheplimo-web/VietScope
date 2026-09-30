@@ -609,9 +609,9 @@ nvidia-nvtx==13.0.85 ; (platform_machine == 'aarch64' and sys_platform == 'linux
     --hash=sha256:4936d1d6780fbe68db454f5e72a42ff64d1fd6397df9f363ae786930fd5c1cd4 \
     --hash=sha256:cb7780edb6b14107373c835bf8b72e7a178bac7367e23da7acb108f973f157a6
     # via cuda-toolkit
-opensearch-py==2.8.0 \
-    --hash=sha256:52c60fdb5d4dcf6cce3ee746c13b194529b0161e0f41268b98ab8f1624abe2fa \
-    --hash=sha256:6598df0bc7a003294edd0ba88a331e0793acbb8c910c43edf398791e3b2eccda
+opensearch-py==3.2.0 \
+    --hash=sha256:721a0d3b13fbed9e82278aed748285cf63a1855354ab7e73e3d4992d1b93418b \
+    --hash=sha256:f40fb3a295275422df2ad6d9459f667af94472d5a9e567072e9ecf163eb22613
     # via search-router
 opentelemetry-api==1.44.0 \
     --hash=sha256:67647e5e9566edcf421166fdf022b3537f818635daa852b289e34604dc6fb33a \

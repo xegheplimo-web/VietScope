@@ -24,7 +24,7 @@ dependencies = [
     # Pin mdurl to avoid hash mismatch (transitive dep of markdown-it-py)
     "mdurl==0.1.2",
     # OpenSearch client — pinned for reproducible builds
-    "opensearch-py==2.8.0",
+    "opensearch-py==3.2.0",
     # hub-postgres driver — async, no ORM
     "asyncpg>=0.30.0",
     # HTML main-content extraction (crawler snapshot → clean text)

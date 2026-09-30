@@ -1,17 +1,16 @@
 """P14 — VN local data foundation: admin gazetteer + osm_pois lane.
 
-Covers the seed dataset (post-2025 34 provinces + 29 former-province
-anchors), the folded-name lookup in services/admin.py, the degrade-safe
-osm_pois lane in services/geo_postgis.py, the tag-kv refactor of
-core/business_entity.py, and the /v1/business/search wiring. No live
-DB or network needed — all store access is faked.
+Covers the canonical admin seed (db/seeds/vn_admin_units.json — post-2025
+34 provinces + 3,321 communes with the pre-2025 geography preserved as
+historical units), the folded-name lookup in services/admin.py, the
+degrade-safe osm_pois lane in services/geo_postgis.py, the tag-kv
+refactor of core/business_entity.py, and the /v1/business/search wiring.
+No live DB or network needed — all store access is faked.
 """
 
 from __future__ import annotations
 
 import asyncio
-import json
-from pathlib import Path
 from unittest.mock import AsyncMock, Mock, patch
 
 import config
@@ -25,11 +24,23 @@ from services.admin import admin_anchor, lookup_admin, match_forms
 from services.geo import GeoPoint
 from services.geo_postgis import osm_pois_nearby
 from storage import pg_client
+from storage.admin_store import _geojson_bounds, load_seed
 
-SEED_PATH = Path(__file__).resolve().parents[1] / "data" / "admin_units_vn.json"
+# Rough bounding box of Vietnam (+ margin): lat 6–24, lon 102–119.5
+# (mainland + island đặc khu, same envelope the seed builder enforces).
+_VN_BBOX = (6.0, 102.0, 24.0, 119.5)
 
-# Rough bounding box of Vietnam (+ margin): lat 8–24, lon 100–112.
-_VN_BBOX = (8.0, 100.0, 24.0, 112.0)
+_ADMIN_TYPE_VOCAB = {
+    "xa",
+    "phuong",
+    "thi_tran",
+    "huyen",
+    "thanh_pho",
+    "tinh",
+    "thi_xa",
+    "quan",
+    "dac_khu",
+}
 
 
 @pytest.fixture(autouse=True)
@@ -40,6 +51,37 @@ def no_db(monkeypatch):
     monkeypatch.delenv("HUB_DATABASE_URL", raising=False)
     admin._reset_cache()
     geo_postgis._reset_cache()
+
+
+@pytest.fixture(scope="module")
+def seed_doc():
+    return load_seed()
+
+
+@pytest.fixture(scope="module")
+def gazetteer(seed_doc):
+    """Canonical seed replayed as _LOAD_SQL rows (bbox-centroid anchors)."""
+    alias_forms: dict[str, list[str]] = {}
+    for a in seed_doc.get("aliases", []):
+        alias_forms.setdefault(a["unit_key"], []).append(a["alias"])
+    rows = []
+    for u in seed_doc["units"]:
+        lat = lon = None
+        if u.get("geometry"):
+            x0, y0, x1, y1 = _geojson_bounds(u["geometry"])
+            lat, lon = (y0 + y1) / 2, (x0 + x1) / 2
+        rows.append(
+            {
+                "code": u["code"],
+                "name": u["name"],
+                "type": u["type"],
+                "lat": lat,
+                "lon": lon,
+                "current": u["status"] == "current",
+                "aliases": alias_forms.get(u["key"], []),
+            }
+        )
+    return rows
 
 
 class _FakePool:
@@ -84,43 +126,55 @@ def _admin_pool(units) -> _FakePool:
 
 
 class TestSeedDataset:
-    @pytest.fixture(scope="class")
-    def units(self):
-        return json.loads(SEED_PATH.read_text(encoding="utf-8"))["units"]
+    def test_current_era_two_level(self, seed_doc):
+        current = [u for u in seed_doc["units"] if u["status"] == "current"]
+        assert len([u for u in current if u["admin_level"] == 1]) == 34
+        assert len([u for u in current if u["admin_level"] == 3]) == 3321
+        assert all(u["admin_level"] != 2 for u in current)
 
-    def test_34_current_29_former(self, units):
-        current = [u for u in units if u.get("valid_to") is None]
-        former = [u for u in units if u["type"] == "former_province"]
-        assert len(current) == 34
-        assert len(former) == 29
-        assert len(units) == 63
+    def test_former_provinces_preserved(self, seed_doc):
+        """The pre-2025 provinces stay as historical anchors, never deleted."""
+        former = [
+            u for u in seed_doc["units"] if u["key"].startswith("old:") and u["admin_level"] == 1
+        ]
+        assert len(former) == 63
+        assert all(u["status"] == "historical" for u in former)
 
-    def test_codes_unique_and_parents_resolve(self, units):
-        codes = [u["code"] for u in units]
-        assert len(codes) == len(set(codes))
-        current_codes = {u["code"] for u in units if u.get("valid_to") is None}
+    def test_keys_unique_and_parents_resolve(self, seed_doc):
+        units = seed_doc["units"]
+        keys = {u["key"] for u in units}
+        assert len(keys) == len(units)
         for u in units:
-            parent = u.get("parent")
+            parent = u.get("parent_key")
             if parent:
-                assert parent in current_codes, f"{u['code']} -> missing parent {parent}"
-                assert u["type"] == "former_province"
+                assert parent in keys, f"{u['key']} -> missing parent {parent}"
 
-    def test_current_codes_are_official(self, units):
-        """Level-1 codes come from provinces.open-api.vn (numeric)."""
-        for u in units:
-            if u.get("valid_to") is None:
+    def test_current_codes_are_official(self, seed_doc):
+        """Current-era codes are the official numeric catalogue codes."""
+        for u in seed_doc["units"]:
+            if u["status"] == "current":
                 assert u["code"].isdigit(), u["code"]
-            else:
-                assert u["code"].startswith("former:"), u["code"]
 
-    def test_coords_inside_vietnam(self, units):
-        for u in units:
-            assert _VN_BBOX[0] <= u["lat"] <= _VN_BBOX[2], u["code"]
-            assert _VN_BBOX[1] <= u["lon"] <= _VN_BBOX[3], u["code"]
+    def test_types(self, seed_doc):
+        for u in seed_doc["units"]:
+            assert u["type"] in _ADMIN_TYPE_VOCAB, u["key"]
+            if u["admin_level"] == 1:
+                assert u["type"] in ("tinh", "thanh_pho"), u["key"]
 
-    def test_types(self, units):
-        for u in units:
-            assert u["type"] in ("province", "municipality", "former_province")
+    def test_coords_inside_vietnam(self, seed_doc):
+        """Current provinces carry geometry inside the VN envelope; the
+        historical era stays geometry-free (point lookup serves current
+        addresses only)."""
+        for u in seed_doc["units"]:
+            geom = u.get("geometry")
+            if u["status"] != "current":
+                assert geom is None, u["key"]
+                continue
+            assert geom is not None and geom["type"] == "MultiPolygon", u["key"]
+            if u["admin_level"] == 1:
+                x0, y0, x1, y1 = _geojson_bounds(geom)
+                assert _VN_BBOX[0] <= y0 and y1 <= _VN_BBOX[2], u["key"]
+                assert _VN_BBOX[1] <= x0 and x1 <= _VN_BBOX[3], u["key"]
 
 
 # ─── match_forms / lookup_admin ──────────────────────────────────────────────
@@ -138,47 +192,43 @@ class TestMatchForms:
 
 
 class TestLookupAdmin:
-    def _lookup(self, text, units=None):
-        data = json.loads(SEED_PATH.read_text(encoding="utf-8"))["units"]
-        pool = _admin_pool(units if units is not None else data)
+    def _lookup(self, text, gazetteer):
+        pool = _FakePool(rows=gazetteer)
         with patch.object(pg_client, "get_pool", AsyncMock(return_value=pool)):
             admin._reset_cache()
             return asyncio.run(lookup_admin(text))
 
-    def test_exact_folded_match(self):
-        div = self._lookup("Bac Ninh")
+    def test_exact_folded_match(self, gazetteer):
+        div = self._lookup("Bac Ninh", gazetteer)
         assert div is not None and div.code == "24"
-        assert div.name == "Thành phố Bắc Ninh"
+        assert div.name == "Bắc Ninh"
 
-    def test_admin_prefix_stripped(self):
-        assert self._lookup("tỉnh Hưng Yên").code == "33"
-        assert self._lookup("thành phố Hồ Chí Minh").code == "79"
+    def test_admin_prefix_stripped(self, gazetteer):
+        assert self._lookup("tỉnh Hưng Yên", gazetteer).code == "33"
+        assert self._lookup("thành phố Hồ Chí Minh", gazetteer).code == "79"
 
-    def test_alias_match(self):
-        assert self._lookup("Saigon").code == "79"
-        assert self._lookup("Đà Lạt").code == "68"
+    def test_alias_match(self, gazetteer):
+        assert self._lookup("Saigon", gazetteer).code == "79"
 
-    def test_former_province_has_own_anchor(self):
-        div = self._lookup("Vũng Tàu")
-        assert div is not None
-        assert div.type == "former_province"
-        assert not div.current
-        # Vũng Tàu city, not the TP.HCM centroid.
-        assert abs(div.lat - 10.346) < 0.01
-        assert abs(div.lon - 107.0843) < 0.01
+    def test_ward_exact_match(self, gazetteer):
+        div = self._lookup("Phường Lâm Viên - Đà Lạt", gazetteer)
+        assert div is not None and div.code == "24778"
+        assert div.type == "phuong" and div.current
 
-    def test_contained_match(self):
-        div = self._lookup("quán cà phê ở hà nội")
+    def test_contained_match(self, gazetteer):
+        div = self._lookup("quán cà phê ở hà nội", gazetteer)
         assert div is not None and div.code == "01"
 
-    def test_longest_form_wins(self):
-        # "bà rịa vũng tàu" beats its own "vũng tàu"/"bà rịa" forms.
-        div = self._lookup("tỉnh bà rịa vũng tàu cũ")
-        assert div is not None and div.code == "former:77"
+    def test_dissolved_province_resolves_to_successor(self, gazetteer):
+        # "Bà Rịa Vũng Tàu" survives as a historical alias on the successor
+        # province and beats the same-named ward's shorter forms.
+        div = self._lookup("tỉnh bà rịa vũng tàu cũ", gazetteer)
+        assert div is not None and div.code == "79"
+        assert div.current is True
 
-    def test_unknown_returns_none(self):
-        assert self._lookup("xyzabc") is None
-        assert self._lookup("") is None
+    def test_unknown_returns_none(self, gazetteer):
+        assert self._lookup("xyzabc", gazetteer) is None
+        assert self._lookup("", gazetteer) is None
 
     def test_no_db_returns_none(self, monkeypatch):
         monkeypatch.setattr(pg_client, "get_pool", AsyncMock(return_value=None))

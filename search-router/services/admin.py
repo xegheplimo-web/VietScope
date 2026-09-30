@@ -1,16 +1,18 @@
 """VN administrative lookup (P14) — local geo anchors from hub-postgres.
 
-``administrative_units`` + ``administrative_aliases`` (migration 002) are
-seeded by ``scripts/import_admin_data.py`` from ``data/admin_units_vn.json``
-— 34 current provincial units plus the 29 merged-away provinces kept as
-``former_province`` anchors, so "Vũng Tàu" resolves to Vũng Tàu city and
-not to the TP.HCM centroid. ``geometry`` currently carries the anchor
-point; real boundaries slot in without schema change.
+``administrative_units`` + ``administrative_aliases`` (migration 006) are
+seeded by ``python -m db.seed_admin`` from ``db/seeds/vn_admin_units.json``
+— the temporal administrative graph: 34 current provincial units plus the
+pre-2025 geography kept as historical units, so dissolved names ("Bà Rịa
+- Vũng Tàu") still resolve — via successor aliases — instead of falling
+back to a wrong centroid. Current-era units carry their boundary in
+``geometry`` (P14B); the anchor point is its centroid.
 
 Lookups fold accents (``core.entity_resolver.fold``) so "Bac Ninh",
-"tỉnh Bắc Ninh" and "Bắc Ninh" hit the same row. The unit set is tiny —
-the folded index is cached in-process for ``_CACHE_TTL_S``; every failure
-(no DSN, missing table, DB error) degrades to ``None``, never raises.
+"tỉnh Bắc Ninh" and "Bắc Ninh" hit the same row. The graph is small
+(~15k units) — the folded index is cached in-process for
+``_CACHE_TTL_S``; every failure (no DSN, missing table, DB error)
+degrades to ``None``, never raises.
 """
 
 from __future__ import annotations

@@ -24,6 +24,7 @@ import asyncio
 import json
 import logging
 import sys
+from datetime import date, datetime
 from pathlib import Path
 
 _SR = Path(__file__).resolve().parents[1]
@@ -40,6 +41,16 @@ _EPOCH = "0001-01-01"
 
 def _coalesce_era(valid_from: str | None) -> str:
     return valid_from or _EPOCH
+
+
+def _as_date(value: str | None) -> date | None:
+    # asyncpg encodes DATE params from date objects only — ISO strings
+    # straight from the seed JSON raise DataError at bind time.
+    return date.fromisoformat(value) if value else None
+
+
+def _as_ts(value: str | None) -> datetime | None:
+    return datetime.fromisoformat(value) if value else None
 
 
 async def seed_admin(conn, seed: dict, *, batch_size: int = 500) -> dict[str, int]:
@@ -79,11 +90,11 @@ async def seed_admin(conn, seed: dict, *, batch_size: int = 500) -> dict[str, in
                     u.get("normalized_name") or None,
                     u["type"],
                     u["admin_level"],
-                    u.get("valid_from"),
-                    u.get("valid_to"),
+                    _as_date(u.get("valid_from")),
+                    _as_date(u.get("valid_to")),
                     u.get("status", "current"),
                     u.get("source"),
-                    seed.get("generated_at"),
+                    _as_ts(seed.get("generated_at")),
                 )
                 for u in batch
             ],
@@ -111,11 +122,11 @@ async def seed_admin(conn, seed: dict, *, batch_size: int = 500) -> dict[str, in
                     u.get("normalized_name") or None,
                     u["type"],
                     u["admin_level"],
-                    u.get("valid_to"),
+                    _as_date(u.get("valid_to")),
                     u.get("status", "current"),
                     u.get("source"),
-                    seed.get("generated_at"),
-                    u.get("valid_from"),
+                    _as_ts(seed.get("generated_at")),
+                    _as_date(u.get("valid_from")),
                 )
                 for u in batch
             ],
@@ -152,7 +163,7 @@ async def seed_admin(conn, seed: dict, *, batch_size: int = 500) -> dict[str, in
                 (
                     u["code"],
                     json.dumps(u["geometry"], separators=(",", ":")),
-                    u.get("valid_from"),
+                    _as_date(u.get("valid_from")),
                 )
                 for u in batch
             ],
@@ -184,8 +195,8 @@ async def seed_admin(conn, seed: dict, *, batch_size: int = 500) -> dict[str, in
             a["alias"],
             a.get("normalized_alias") or "",
             a.get("alias_type", "alternate"),
-            a.get("valid_from"),
-            a.get("valid_to"),
+            _as_date(a.get("valid_from")),
+            _as_date(a.get("valid_to")),
         )
         if "INSERT" in tag:
             inserted_aliases += 1
@@ -213,7 +224,7 @@ async def seed_admin(conn, seed: dict, *, batch_size: int = 500) -> dict[str, in
             fid,
             tid,
             r["relation_type"],
-            r.get("effective_date"),
+            _as_date(r.get("effective_date")),
             r.get("source"),
         )
         if "INSERT" in tag:

@@ -26,7 +26,7 @@ jobs:
           persist-credentials: false
           submodules: false  # submodules are only used for the docker-compose stack, not tests
       - name: Install uv (version pinned via required-version in pyproject.toml)
-        uses: astral-sh/setup-uv@20cfd1bf945f4377ade1205e4dbc17946fc9a30d # v10.0.1
+        uses: astral-sh/setup-uv@c18668ad3cf93ea998bef934396af7bb5c839dc7 # v10.2.0
         with:
           version-file: search-router/pyproject.toml
           enable-cache: true

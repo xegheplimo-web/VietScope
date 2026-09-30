@@ -53,10 +53,6 @@ def _as_ts(value: str | None) -> datetime | None:
     return datetime.fromisoformat(value) if value else None
 
 
-def _coalesce_era(valid_from: str | None) -> str:
-    return valid_from or _EPOCH
-
-
 async def seed_admin(conn, seed: dict, *, batch_size: int = 500) -> dict[str, int]:
     """Upsert the seed document on one asyncpg connection."""
     units = seed.get("units", [])

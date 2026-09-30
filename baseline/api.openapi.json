@@ -1,0 +1,4911 @@
+{
+  "components": {
+    "schemas": {
+      "AdminRelationOut": {
+        "properties": {
+          "effective_date": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Effective Date"
+          },
+          "from_key": {
+            "title": "From Key",
+            "type": "string"
+          },
+          "relation_type": {
+            "title": "Relation Type",
+            "type": "string"
+          },
+          "source": {
+            "default": "",
+            "title": "Source",
+            "type": "string"
+          },
+          "to_key": {
+            "title": "To Key",
+            "type": "string"
+          }
+        },
+        "required": [
+          "from_key",
+          "to_key",
+          "relation_type"
+        ],
+        "title": "AdminRelationOut",
+        "type": "object"
+      },
+      "AdminResolveResponse": {
+        "description": "GET /v1/admin/resolve \u2014 address text \u2192 canonical admin graph (P14A).",
+        "properties": {
+          "ambiguity": {
+            "description": "Competing candidates when status == 'ambiguous'",
+            "items": {
+              "$ref": "#/components/schemas/AdminUnitOut"
+            },
+            "title": "Ambiguity",
+            "type": "array"
+          },
+          "confidence": {
+            "title": "Confidence",
+            "type": "number"
+          },
+          "current": {
+            "description": "Current-era units resolved via the transition graph",
+            "items": {
+              "$ref": "#/components/schemas/AdminUnitOut"
+            },
+            "title": "Current",
+            "type": "array"
+          },
+          "matched": {
+            "description": "Units matched in the input (any era, may be historical)",
+            "items": {
+              "$ref": "#/components/schemas/AdminUnitOut"
+            },
+            "title": "Matched",
+            "type": "array"
+          },
+          "path": {
+            "description": "Transition edges walked to reach ``current``",
+            "items": {
+              "$ref": "#/components/schemas/AdminRelationOut"
+            },
+            "title": "Path",
+            "type": "array"
+          },
+          "query": {
+            "title": "Query",
+            "type": "string"
+          },
+          "status": {
+            "description": "resolved | ambiguous | not_found",
+            "title": "Status",
+            "type": "string"
+          }
+        },
+        "required": [
+          "query",
+          "status",
+          "confidence",
+          "matched",
+          "current",
+          "path"
+        ],
+        "title": "AdminResolveResponse",
+        "type": "object"
+      },
+      "AdminUnitOut": {
+        "description": "One administrative unit (P14A), keyed by era-prefixed key.",
+        "properties": {
+          "admin_level": {
+            "title": "Admin Level",
+            "type": "integer"
+          },
+          "code": {
+            "title": "Code",
+            "type": "string"
+          },
+          "key": {
+            "description": "Era-prefixed key, e.g. 'new:24' / 'old:221'",
+            "title": "Key",
+            "type": "string"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "source": {
+            "default": "",
+            "title": "Source",
+            "type": "string"
+          },
+          "status": {
+            "title": "Status",
+            "type": "string"
+          },
+          "type": {
+            "title": "Type",
+            "type": "string"
+          },
+          "unit_id": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Unit Id"
+          },
+          "valid_from": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Valid From"
+          },
+          "valid_to": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Valid To"
+          }
+        },
+        "required": [
+          "key",
+          "code",
+          "name",
+          "type",
+          "admin_level",
+          "status"
+        ],
+        "title": "AdminUnitOut",
+        "type": "object"
+      },
+      "AnswerToolRequest": {
+        "description": "answer() \u2014 full pipeline: search \u2192 scrape \u2192 rerank \u2192 synthesize with citations.",
+        "properties": {
+          "depth": {
+            "$ref": "#/components/schemas/ResearchDepth",
+            "default": "normal"
+          },
+          "lang": {
+            "default": "en",
+            "title": "Lang",
+            "type": "string"
+          },
+          "max_results": {
+            "default": 10,
+            "title": "Max Results",
+            "type": "integer"
+          },
+          "query": {
+            "title": "Query",
+            "type": "string"
+          },
+          "scrape_top_n": {
+            "default": 5,
+            "title": "Scrape Top N",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "query"
+        ],
+        "title": "AnswerToolRequest",
+        "type": "object"
+      },
+      "AnswerToolResponse": {
+        "properties": {
+          "answer": {
+            "default": "",
+            "title": "Answer",
+            "type": "string"
+          },
+          "elapsed_seconds": {
+            "default": 0.0,
+            "title": "Elapsed Seconds",
+            "type": "number"
+          },
+          "evidence": {
+            "$ref": "#/components/schemas/EvidenceResult"
+          },
+          "follow_up_questions": {
+            "default": [],
+            "items": {
+              "type": "string"
+            },
+            "title": "Follow Up Questions",
+            "type": "array"
+          },
+          "query": {
+            "title": "Query",
+            "type": "string"
+          }
+        },
+        "required": [
+          "query"
+        ],
+        "title": "AnswerToolResponse",
+        "type": "object"
+      },
+      "AuthCheckResponse": {
+        "description": "GET /v1/auth/check \u2014 self-verification probe for client startup.\n\n``authenticated`` means a Bearer key was presented AND resolved to a\nlive (non-revoked) key row; ``auth_enabled`` reports the deployment's\nAPI_AUTH_ENABLED so dev stacks can skip verification entirely.",
+        "properties": {
+          "auth_enabled": {
+            "title": "Auth Enabled",
+            "type": "boolean"
+          },
+          "authenticated": {
+            "title": "Authenticated",
+            "type": "boolean"
+          },
+          "scopes": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Scopes",
+            "type": "array"
+          },
+          "tenant": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Tenant"
+          }
+        },
+        "required": [
+          "authenticated",
+          "auth_enabled"
+        ],
+        "title": "AuthCheckResponse",
+        "type": "object"
+      },
+      "BusinessEntity": {
+        "description": "A local business extracted from web content or stored in the geo database.",
+        "properties": {
+          "address": {
+            "default": "",
+            "description": "Street address",
+            "title": "Address",
+            "type": "string"
+          },
+          "admin_unit_id": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Canonical administrative_units.unit_id (P14A) \u2014 administrative identity lives here, not in name strings",
+            "title": "Admin Unit Id"
+          },
+          "category": {
+            "default": "",
+            "description": "Business category",
+            "title": "Category",
+            "type": "string"
+          },
+          "description": {
+            "default": "",
+            "description": "Short description or snippet",
+            "title": "Description",
+            "type": "string"
+          },
+          "hours": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Opening hours",
+            "title": "Hours"
+          },
+          "lat": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Latitude (WGS84)",
+            "title": "Lat"
+          },
+          "lon": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Longitude (WGS84)",
+            "title": "Lon"
+          },
+          "name": {
+            "description": "Business name",
+            "title": "Name",
+            "type": "string"
+          },
+          "phone": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Phone number",
+            "title": "Phone"
+          },
+          "price_level": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Price range or level",
+            "title": "Price Level"
+          },
+          "rating": {
+            "anyOf": [
+              {
+                "maximum": 5.0,
+                "minimum": 0.0,
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Rating out of 5",
+            "title": "Rating"
+          },
+          "source_url": {
+            "default": "",
+            "description": "URL this entity was extracted from",
+            "title": "Source Url",
+            "type": "string"
+          },
+          "website": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Business website URL",
+            "title": "Website"
+          }
+        },
+        "required": [
+          "name"
+        ],
+        "title": "BusinessEntity",
+        "type": "object"
+      },
+      "BusinessSearchRequest": {
+        "description": "POST /v1/business/search \u2014 local business search by location.\n\n``lat``/``lon`` may both be omitted: the anchor is then resolved from\nthe query itself (entity resolution \u2192 Nominatim geocode, or the text\nfollowing \"g\u1ea7n|near|\u1edf|t\u1ea1i|quanh\" phrases \u2014 P7).",
+        "properties": {
+          "category": {
+            "anyOf": [
+              {
+                "maxLength": 100,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Category"
+          },
+          "lat": {
+            "anyOf": [
+              {
+                "maximum": 90.0,
+                "minimum": -90.0,
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Lat"
+          },
+          "limit": {
+            "default": 20,
+            "maximum": 100.0,
+            "minimum": 1.0,
+            "title": "Limit",
+            "type": "integer"
+          },
+          "lon": {
+            "anyOf": [
+              {
+                "maximum": 180.0,
+                "minimum": -180.0,
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Lon"
+          },
+          "query": {
+            "maxLength": 2000,
+            "minLength": 1,
+            "title": "Query",
+            "type": "string"
+          },
+          "radius_km": {
+            "default": 2.0,
+            "maximum": 50.0,
+            "minimum": 0.1,
+            "title": "Radius Km",
+            "type": "number"
+          }
+        },
+        "required": [
+          "query"
+        ],
+        "title": "BusinessSearchRequest",
+        "type": "object"
+      },
+      "BusinessSearchResponse": {
+        "properties": {
+          "anchor": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/GeoAnchor"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "count": {
+            "title": "Count",
+            "type": "integer"
+          },
+          "entities": {
+            "items": {
+              "$ref": "#/components/schemas/BusinessEntity"
+            },
+            "title": "Entities",
+            "type": "array"
+          },
+          "evidence": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Evidence",
+            "type": "array"
+          },
+          "lat": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Lat"
+          },
+          "lon": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Lon"
+          },
+          "provider": {
+            "title": "Provider",
+            "type": "string"
+          },
+          "query": {
+            "title": "Query",
+            "type": "string"
+          },
+          "radius_km": {
+            "title": "Radius Km",
+            "type": "number"
+          }
+        },
+        "required": [
+          "query",
+          "lat",
+          "lon",
+          "radius_km",
+          "provider",
+          "entities",
+          "evidence",
+          "count"
+        ],
+        "title": "BusinessSearchResponse",
+        "type": "object"
+      },
+      "CapabilitiesResponse": {
+        "properties": {
+          "features": {
+            "additionalProperties": true,
+            "description": "Available features",
+            "title": "Features",
+            "type": "object"
+          },
+          "modes": {
+            "default": [],
+            "description": "Supported search modes",
+            "items": {
+              "$ref": "#/components/schemas/SearchMode"
+            },
+            "title": "Modes",
+            "type": "array"
+          },
+          "providers": {
+            "default": [],
+            "description": "Provider status information",
+            "items": {
+              "$ref": "#/components/schemas/ProviderStatus"
+            },
+            "title": "Providers",
+            "type": "array"
+          }
+        },
+        "title": "CapabilitiesResponse",
+        "type": "object"
+      },
+      "ChatCompletionRequest": {
+        "description": "OpenAI ``/v1/chat/completions`` body.\n\nHonored: ``model``, ``messages``, ``stream``, ``max_tokens`` /\n``max_completion_tokens`` (content budget, ~4 chars/token), ``stop``\n(post-hoc truncation).  Accepted-but-ignored: ``temperature``, ``top_p``,\n``seed``, ``presence_penalty``, ``frequency_penalty``, ``user``,\n``tools``, ``tool_choice`` \u2014 the pipeline has no knobs for them today\n(documented, not silently \"supported\").  ``tools`` in particular must be\ntolerated: Open WebUI's default builtin-tools capability sends a\nnon-empty array on every request; rejecting it would break the\nflagship connect+chat flow.  Rejected with 400\n``unsupported_parameter``: forced ``tool_choice`` (``\"required\"`` or a\nspecific function \u2014 the client demands a tool_call we cannot produce),\nJSON-mode ``response_format``, ``n > 1``.\nUnknown extra fields are ignored (OpenAI clients send plenty).",
+        "properties": {
+          "frequency_penalty": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Frequency Penalty"
+          },
+          "max_completion_tokens": {
+            "anyOf": [
+              {
+                "minimum": 1.0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Max Completion Tokens"
+          },
+          "max_tokens": {
+            "anyOf": [
+              {
+                "minimum": 1.0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Max Tokens"
+          },
+          "messages": {
+            "items": {
+              "$ref": "#/components/schemas/ChatMessage"
+            },
+            "title": "Messages",
+            "type": "array"
+          },
+          "model": {
+            "default": "duyai-search",
+            "title": "Model",
+            "type": "string"
+          },
+          "n": {
+            "anyOf": [
+              {
+                "minimum": 1.0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "N"
+          },
+          "presence_penalty": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Presence Penalty"
+          },
+          "response_format": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Response Format"
+          },
+          "seed": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Seed"
+          },
+          "stop": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Stop"
+          },
+          "stream": {
+            "default": false,
+            "title": "Stream",
+            "type": "boolean"
+          },
+          "stream_options": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Stream Options"
+          },
+          "temperature": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Temperature"
+          },
+          "tool_choice": {
+            "title": "Tool Choice"
+          },
+          "tools": {
+            "anyOf": [
+              {
+                "items": {},
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Tools"
+          },
+          "top_p": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Top P"
+          },
+          "user": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "User"
+          }
+        },
+        "title": "ChatCompletionRequest",
+        "type": "object"
+      },
+      "ChatMessage": {
+        "properties": {
+          "content": {
+            "default": "",
+            "title": "Content"
+          },
+          "role": {
+            "title": "Role",
+            "type": "string"
+          }
+        },
+        "required": [
+          "role"
+        ],
+        "title": "ChatMessage",
+        "type": "object"
+      },
+      "Citation": {
+        "description": "A citation linking a claim to source(s).",
+        "properties": {
+          "claim": {
+            "default": "",
+            "title": "Claim",
+            "type": "string"
+          },
+          "source_ids": {
+            "default": [],
+            "items": {
+              "type": "string"
+            },
+            "title": "Source Ids",
+            "type": "array"
+          }
+        },
+        "title": "Citation",
+        "type": "object"
+      },
+      "CitationV2": {
+        "properties": {
+          "citation_text": {
+            "default": "",
+            "description": "Rendered citation text",
+            "title": "Citation Text",
+            "type": "string"
+          },
+          "claim_id": {
+            "description": "Claim identifier",
+            "title": "Claim Id",
+            "type": "string"
+          },
+          "evidence": {
+            "default": [],
+            "description": "Evidence references",
+            "items": {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            "title": "Evidence",
+            "type": "array"
+          }
+        },
+        "required": [
+          "claim_id"
+        ],
+        "title": "CitationV2",
+        "type": "object"
+      },
+      "ClaimVerification": {
+        "properties": {
+          "claim_id": {
+            "description": "Unique claim identifier",
+            "title": "Claim Id",
+            "type": "string"
+          },
+          "claim_text": {
+            "description": "The claim being verified",
+            "title": "Claim Text",
+            "type": "string"
+          },
+          "confidence": {
+            "default": 0.0,
+            "description": "Confidence score (0.0-1.0)",
+            "title": "Confidence",
+            "type": "number"
+          },
+          "contradictions": {
+            "default": [],
+            "description": "List of contradictions found",
+            "items": {
+              "type": "string"
+            },
+            "title": "Contradictions",
+            "type": "array"
+          },
+          "evidence": {
+            "default": [],
+            "description": "List of evidence identifiers supporting the claim",
+            "items": {
+              "type": "string"
+            },
+            "title": "Evidence",
+            "type": "array"
+          },
+          "sources_conflict": {
+            "default": false,
+            "description": "Whether source conflict detected",
+            "title": "Sources Conflict",
+            "type": "boolean"
+          },
+          "status": {
+            "description": "Verification status",
+            "title": "Status",
+            "type": "string"
+          },
+          "timestamp": {
+            "title": "Timestamp",
+            "type": "string"
+          },
+          "verdict": {
+            "default": "",
+            "description": "Detailed verdict text",
+            "title": "Verdict",
+            "type": "string"
+          }
+        },
+        "required": [
+          "claim_id",
+          "claim_text",
+          "status"
+        ],
+        "title": "ClaimVerification",
+        "type": "object"
+      },
+      "CodeSearchToolRequest": {
+        "description": "code_search() \u2014 search code repositories.",
+        "properties": {
+          "max_results": {
+            "default": 10,
+            "title": "Max Results",
+            "type": "integer"
+          },
+          "query": {
+            "title": "Query",
+            "type": "string"
+          },
+          "repo": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Repo"
+          }
+        },
+        "required": [
+          "query"
+        ],
+        "title": "CodeSearchToolRequest",
+        "type": "object"
+      },
+      "CodeSearchToolResponse": {
+        "properties": {
+          "elapsed_seconds": {
+            "default": 0.0,
+            "title": "Elapsed Seconds",
+            "type": "number"
+          },
+          "query": {
+            "title": "Query",
+            "type": "string"
+          },
+          "results": {
+            "default": [],
+            "items": {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            "title": "Results",
+            "type": "array"
+          }
+        },
+        "required": [
+          "query"
+        ],
+        "title": "CodeSearchToolResponse",
+        "type": "object"
+      },
+      "EvidenceCluster": {
+        "properties": {
+          "cluster_id": {
+            "description": "Unique cluster identifier",
+            "title": "Cluster Id",
+            "type": "string"
+          },
+          "deduplication_method": {
+            "default": "",
+            "description": "Method used for deduplication",
+            "title": "Deduplication Method",
+            "type": "string"
+          },
+          "is_independent": {
+            "default": true,
+            "description": "Whether sources are independent",
+            "title": "Is Independent",
+            "type": "boolean"
+          },
+          "sources": {
+            "default": [],
+            "description": "List of source identifiers in this cluster",
+            "items": {
+              "type": "string"
+            },
+            "title": "Sources",
+            "type": "array"
+          }
+        },
+        "required": [
+          "cluster_id"
+        ],
+        "title": "EvidenceCluster",
+        "type": "object"
+      },
+      "EvidencePack": {
+        "properties": {
+          "answer": {
+            "description": "Generated answer",
+            "title": "Answer",
+            "type": "string"
+          },
+          "budget_used": {
+            "$ref": "#/components/schemas/SearchBudget",
+            "description": "Budget consumed"
+          },
+          "citations": {
+            "default": [],
+            "description": "Citations for claims",
+            "items": {
+              "$ref": "#/components/schemas/CitationV2"
+            },
+            "title": "Citations",
+            "type": "array"
+          },
+          "claims": {
+            "default": [],
+            "description": "Claims extracted from answer",
+            "items": {
+              "$ref": "#/components/schemas/ClaimVerification"
+            },
+            "title": "Claims",
+            "type": "array"
+          },
+          "confidence": {
+            "default": 0.0,
+            "description": "Confidence score (0.0-1.0)",
+            "title": "Confidence",
+            "type": "number"
+          },
+          "coverage": {
+            "default": 0.0,
+            "description": "Coverage score (0.0-1.0)",
+            "title": "Coverage",
+            "type": "number"
+          },
+          "sources": {
+            "default": [],
+            "description": "Source identifiers used",
+            "items": {
+              "$ref": "#/components/schemas/Source"
+            },
+            "title": "Sources",
+            "type": "array"
+          }
+        },
+        "required": [
+          "answer"
+        ],
+        "title": "EvidencePack",
+        "type": "object"
+      },
+      "EvidenceRequest": {
+        "description": "POST /v1/evidence \u2014 batch evidence fetch + passage rerank (P11.1).\n\n``sources`` caps at 20 server-side \u2014 Hermes contract is 8 (normal) /\n15 (deep), enforced at the MCP layer; 20 is the hard API ceiling so a\nrunaway batch cannot outlive the request budget.",
+        "properties": {
+          "freshness": {
+            "default": "normal",
+            "enum": [
+              "realtime",
+              "high",
+              "normal",
+              "static"
+            ],
+            "title": "Freshness",
+            "type": "string"
+          },
+          "max_passages": {
+            "default": 5,
+            "maximum": 50.0,
+            "minimum": 1.0,
+            "title": "Max Passages",
+            "type": "integer"
+          },
+          "max_per_source": {
+            "default": 3,
+            "maximum": 10.0,
+            "minimum": 1.0,
+            "title": "Max Per Source",
+            "type": "integer"
+          },
+          "query": {
+            "maxLength": 2000,
+            "minLength": 1,
+            "title": "Query",
+            "type": "string"
+          },
+          "sources": {
+            "items": {
+              "anyOf": [
+                {
+                  "$ref": "#/components/schemas/EvidenceSourceIn"
+                },
+                {
+                  "type": "string"
+                }
+              ]
+            },
+            "maxItems": 20,
+            "minItems": 1,
+            "title": "Sources",
+            "type": "array"
+          }
+        },
+        "required": [
+          "sources",
+          "query"
+        ],
+        "title": "EvidenceRequest",
+        "type": "object"
+      },
+      "EvidenceResult": {
+        "description": "Evidence package returned with every answer.",
+        "properties": {
+          "citations": {
+            "default": [],
+            "items": {
+              "$ref": "#/components/schemas/Citation"
+            },
+            "title": "Citations",
+            "type": "array"
+          },
+          "sources": {
+            "default": [],
+            "items": {
+              "$ref": "#/components/schemas/Source"
+            },
+            "title": "Sources",
+            "type": "array"
+          }
+        },
+        "title": "EvidenceResult",
+        "type": "object"
+      },
+      "EvidenceSourceIn": {
+        "description": "One ``/v1/evidence`` source \u2014 the structured ``search`` contract.\n\nOnly ``url`` is required; the other fields carry search-side\nprovenance straight through to every emitted evidence item so\ncitations can map claim \u2192 passage \u2192 source \u2192 URL.",
+        "properties": {
+          "canonical_url": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Canonical Url"
+          },
+          "domain": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Domain"
+          },
+          "published_at": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Published At"
+          },
+          "score": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Score"
+          },
+          "search_provider": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Search Provider"
+          },
+          "source_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Source Id"
+          },
+          "title": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Title"
+          },
+          "url": {
+            "maxLength": 8192,
+            "minLength": 1,
+            "title": "Url",
+            "type": "string"
+          }
+        },
+        "required": [
+          "url"
+        ],
+        "title": "EvidenceSourceIn",
+        "type": "object"
+      },
+      "FetchMode": {
+        "enum": [
+          "scrape",
+          "crawl",
+          "map"
+        ],
+        "title": "FetchMode",
+        "type": "string"
+      },
+      "FetchToolRequest": {
+        "description": "fetch() \u2014 read content from URL(s).",
+        "properties": {
+          "formats": {
+            "default": "markdown",
+            "title": "Formats",
+            "type": "string"
+          },
+          "limit": {
+            "default": 10,
+            "title": "Limit",
+            "type": "integer"
+          },
+          "mode": {
+            "$ref": "#/components/schemas/FetchMode",
+            "default": "scrape"
+          },
+          "url": {
+            "title": "Url",
+            "type": "string"
+          }
+        },
+        "required": [
+          "url"
+        ],
+        "title": "FetchToolRequest",
+        "type": "object"
+      },
+      "FetchToolResponse": {
+        "properties": {
+          "content": {
+            "default": "",
+            "title": "Content",
+            "type": "string"
+          },
+          "elapsed_seconds": {
+            "default": 0.0,
+            "title": "Elapsed Seconds",
+            "type": "number"
+          },
+          "error": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Error"
+          },
+          "metadata": {
+            "additionalProperties": true,
+            "default": {},
+            "title": "Metadata",
+            "type": "object"
+          },
+          "mode": {
+            "title": "Mode",
+            "type": "string"
+          },
+          "pages": {
+            "anyOf": [
+              {
+                "items": {
+                  "additionalProperties": true,
+                  "type": "object"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Pages"
+          },
+          "title": {
+            "default": "",
+            "title": "Title",
+            "type": "string"
+          },
+          "url": {
+            "title": "Url",
+            "type": "string"
+          },
+          "urls": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Urls"
+          }
+        },
+        "required": [
+          "url",
+          "mode"
+        ],
+        "title": "FetchToolResponse",
+        "type": "object"
+      },
+      "FieldProvenanceOut": {
+        "properties": {
+          "chosen": {
+            "title": "Chosen",
+            "type": "boolean"
+          },
+          "field": {
+            "title": "Field",
+            "type": "string"
+          },
+          "observed_at": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Observed At"
+          },
+          "provider": {
+            "title": "Provider",
+            "type": "string"
+          },
+          "value": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "string"
+              },
+              {
+                "type": "number"
+              },
+              {
+                "type": "integer"
+              },
+              {
+                "items": {},
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Value"
+          },
+          "weight": {
+            "title": "Weight",
+            "type": "number"
+          }
+        },
+        "required": [
+          "field",
+          "provider",
+          "weight",
+          "chosen"
+        ],
+        "title": "FieldProvenanceOut",
+        "type": "object"
+      },
+      "GeoAnchor": {
+        "description": "The resolved geo anchor when lat/lon came from the query text.",
+        "properties": {
+          "display_name": {
+            "default": "",
+            "title": "Display Name",
+            "type": "string"
+          },
+          "lat": {
+            "title": "Lat",
+            "type": "number"
+          },
+          "lon": {
+            "title": "Lon",
+            "type": "number"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "resolved_from": {
+            "default": "entity",
+            "title": "Resolved From",
+            "type": "string"
+          }
+        },
+        "required": [
+          "name",
+          "lat",
+          "lon"
+        ],
+        "title": "GeoAnchor",
+        "type": "object"
+      },
+      "HTTPValidationError": {
+        "properties": {
+          "detail": {
+            "items": {
+              "$ref": "#/components/schemas/ValidationError"
+            },
+            "title": "Detail",
+            "type": "array"
+          }
+        },
+        "title": "HTTPValidationError",
+        "type": "object"
+      },
+      "HealthStatus": {
+        "description": "Back-compat: provider health summary (used by GET /health).",
+        "properties": {
+          "firecrawl": {
+            "default": "unknown",
+            "description": "Firecrawl status: ok/unreachable",
+            "title": "Firecrawl",
+            "type": "string"
+          },
+          "llm": {
+            "default": "not configured",
+            "description": "LLM status: configured/not configured",
+            "title": "Llm",
+            "type": "string"
+          },
+          "searxng": {
+            "default": "unknown",
+            "description": "SearXNG status: ok/unreachable",
+            "title": "Searxng",
+            "type": "string"
+          }
+        },
+        "title": "HealthStatus",
+        "type": "object"
+      },
+      "IngestRequest": {
+        "description": "POST /v1/ingest/{provider} \u2014 push provider records into raw staging.\n\n``entries`` are verbatim provider records (scraper NDJSON lines decoded,\nor document rows for web_corpus). The adapter contract is batch\nacquisition \u2014 files land via scripts/ingest.py; this endpoint is for\ndirect record pushes and small uploads.",
+        "properties": {
+          "entries": {
+            "items": {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            "maxItems": 10000,
+            "minItems": 1,
+            "title": "Entries",
+            "type": "array"
+          },
+          "parameters": {
+            "additionalProperties": true,
+            "title": "Parameters",
+            "type": "object"
+          }
+        },
+        "required": [
+          "entries"
+        ],
+        "title": "IngestRequest",
+        "type": "object"
+      },
+      "IngestResult": {
+        "properties": {
+          "adapter_version": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Adapter Version"
+          },
+          "available": {
+            "default": true,
+            "title": "Available",
+            "type": "boolean"
+          },
+          "changed": {
+            "default": 0,
+            "title": "Changed",
+            "type": "integer"
+          },
+          "errors": {
+            "additionalProperties": true,
+            "title": "Errors",
+            "type": "object"
+          },
+          "failed": {
+            "default": 0,
+            "title": "Failed",
+            "type": "integer"
+          },
+          "invalid": {
+            "default": 0,
+            "title": "Invalid",
+            "type": "integer"
+          },
+          "new": {
+            "default": 0,
+            "title": "New",
+            "type": "integer"
+          },
+          "provider": {
+            "title": "Provider",
+            "type": "string"
+          },
+          "resume_of": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Resume Of"
+          },
+          "run_id": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Run Id"
+          },
+          "seen": {
+            "default": 0,
+            "title": "Seen",
+            "type": "integer"
+          },
+          "source_dataset": {
+            "additionalProperties": true,
+            "title": "Source Dataset",
+            "type": "object"
+          },
+          "status": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Status"
+          },
+          "unchanged": {
+            "default": 0,
+            "title": "Unchanged",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "provider"
+        ],
+        "title": "IngestResult",
+        "type": "object"
+      },
+      "IngestionRunOut": {
+        "properties": {
+          "adapter_version": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Adapter Version"
+          },
+          "checkpoint": {
+            "additionalProperties": true,
+            "title": "Checkpoint",
+            "type": "object"
+          },
+          "completed_at": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Completed At"
+          },
+          "cursor": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Cursor"
+          },
+          "error_summary": {
+            "additionalProperties": true,
+            "title": "Error Summary",
+            "type": "object"
+          },
+          "parameters": {
+            "additionalProperties": true,
+            "title": "Parameters",
+            "type": "object"
+          },
+          "provider": {
+            "title": "Provider",
+            "type": "string"
+          },
+          "records_changed": {
+            "default": 0,
+            "title": "Records Changed",
+            "type": "integer"
+          },
+          "records_failed": {
+            "default": 0,
+            "title": "Records Failed",
+            "type": "integer"
+          },
+          "records_invalid": {
+            "default": 0,
+            "title": "Records Invalid",
+            "type": "integer"
+          },
+          "records_new": {
+            "default": 0,
+            "title": "Records New",
+            "type": "integer"
+          },
+          "records_seen": {
+            "default": 0,
+            "title": "Records Seen",
+            "type": "integer"
+          },
+          "records_unchanged": {
+            "default": 0,
+            "title": "Records Unchanged",
+            "type": "integer"
+          },
+          "resume_of": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Resume Of"
+          },
+          "run_id": {
+            "title": "Run Id",
+            "type": "integer"
+          },
+          "source_dataset": {
+            "additionalProperties": true,
+            "title": "Source Dataset",
+            "type": "object"
+          },
+          "source_version": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Source Version"
+          },
+          "started_at": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Started At"
+          },
+          "status": {
+            "title": "Status",
+            "type": "string"
+          }
+        },
+        "required": [
+          "run_id",
+          "provider",
+          "status"
+        ],
+        "title": "IngestionRunOut",
+        "type": "object"
+      },
+      "PlaceDetailOut": {
+        "properties": {
+          "address": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Address"
+          },
+          "admin_unit_id": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Admin Unit Id"
+          },
+          "aliases": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Aliases",
+            "type": "array"
+          },
+          "business_id": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Business Id"
+          },
+          "canonical_category": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Canonical Category"
+          },
+          "canonical_name": {
+            "title": "Canonical Name",
+            "type": "string"
+          },
+          "confidence": {
+            "title": "Confidence",
+            "type": "number"
+          },
+          "degraded": {
+            "default": false,
+            "title": "Degraded",
+            "type": "boolean"
+          },
+          "distance_m": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Distance M"
+          },
+          "freshness_score": {
+            "default": 0.0,
+            "title": "Freshness Score",
+            "type": "number"
+          },
+          "images": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Images",
+            "type": "array"
+          },
+          "last_verified_at": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Last Verified At"
+          },
+          "lat": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Lat"
+          },
+          "lon": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Lon"
+          },
+          "map_url": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Map Url"
+          },
+          "name": {
+            "default": "",
+            "title": "Name",
+            "type": "string"
+          },
+          "open_now": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Open Now"
+          },
+          "opening_hours": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Opening Hours"
+          },
+          "phone": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Phone"
+          },
+          "place_id": {
+            "title": "Place Id",
+            "type": "integer"
+          },
+          "price_level": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Price Level"
+          },
+          "primary_image_url": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Primary Image Url"
+          },
+          "provenance": {
+            "items": {
+              "$ref": "#/components/schemas/FieldProvenanceOut"
+            },
+            "title": "Provenance",
+            "type": "array"
+          },
+          "rating": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Rating"
+          },
+          "review_count": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Review Count"
+          },
+          "score_debug": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Score Debug"
+          },
+          "source_count": {
+            "title": "Source Count",
+            "type": "integer"
+          },
+          "sources": {
+            "items": {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            "title": "Sources",
+            "type": "array"
+          },
+          "status": {
+            "title": "Status",
+            "type": "string"
+          },
+          "website": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Website"
+          }
+        },
+        "required": [
+          "place_id",
+          "canonical_name",
+          "status",
+          "confidence",
+          "source_count"
+        ],
+        "title": "PlaceDetailOut",
+        "type": "object"
+      },
+      "PlaceOut": {
+        "properties": {
+          "address": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Address"
+          },
+          "admin_unit_id": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Admin Unit Id"
+          },
+          "aliases": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Aliases",
+            "type": "array"
+          },
+          "business_id": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Business Id"
+          },
+          "canonical_category": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Canonical Category"
+          },
+          "canonical_name": {
+            "title": "Canonical Name",
+            "type": "string"
+          },
+          "confidence": {
+            "title": "Confidence",
+            "type": "number"
+          },
+          "distance_m": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Distance M"
+          },
+          "freshness_score": {
+            "default": 0.0,
+            "title": "Freshness Score",
+            "type": "number"
+          },
+          "images": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Images",
+            "type": "array"
+          },
+          "last_verified_at": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Last Verified At"
+          },
+          "lat": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Lat"
+          },
+          "lon": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Lon"
+          },
+          "map_url": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Map Url"
+          },
+          "name": {
+            "default": "",
+            "title": "Name",
+            "type": "string"
+          },
+          "open_now": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Open Now"
+          },
+          "opening_hours": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Opening Hours"
+          },
+          "phone": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Phone"
+          },
+          "place_id": {
+            "title": "Place Id",
+            "type": "integer"
+          },
+          "price_level": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Price Level"
+          },
+          "primary_image_url": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Primary Image Url"
+          },
+          "rating": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Rating"
+          },
+          "review_count": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Review Count"
+          },
+          "score_debug": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Score Debug"
+          },
+          "source_count": {
+            "title": "Source Count",
+            "type": "integer"
+          },
+          "status": {
+            "title": "Status",
+            "type": "string"
+          },
+          "website": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Website"
+          }
+        },
+        "required": [
+          "place_id",
+          "canonical_name",
+          "status",
+          "confidence",
+          "source_count"
+        ],
+        "title": "PlaceOut",
+        "type": "object"
+      },
+      "PlaceSuggestionOut": {
+        "properties": {
+          "canonical_category": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Canonical Category"
+          },
+          "distance_m": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Distance M"
+          },
+          "lat": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Lat"
+          },
+          "lon": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Lon"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "place_id": {
+            "title": "Place Id",
+            "type": "integer"
+          },
+          "status": {
+            "default": "unknown",
+            "title": "Status",
+            "type": "string"
+          }
+        },
+        "required": [
+          "place_id",
+          "name"
+        ],
+        "title": "PlaceSuggestionOut",
+        "type": "object"
+      },
+      "ProviderStatus": {
+        "properties": {
+          "last_check": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Last health check timestamp",
+            "title": "Last Check"
+          },
+          "name": {
+            "description": "Provider name",
+            "title": "Name",
+            "type": "string"
+          },
+          "status": {
+            "default": "unknown",
+            "description": "Provider status",
+            "title": "Status",
+            "type": "string"
+          }
+        },
+        "required": [
+          "name"
+        ],
+        "title": "ProviderStatus",
+        "type": "object"
+      },
+      "ReadRequest": {
+        "properties": {
+          "chunk_overlap": {
+            "default": 200,
+            "maximum": 19999.0,
+            "minimum": 0.0,
+            "title": "Chunk Overlap",
+            "type": "integer"
+          },
+          "chunk_size": {
+            "default": 800,
+            "maximum": 20000.0,
+            "minimum": 1.0,
+            "title": "Chunk Size",
+            "type": "integer"
+          },
+          "url": {
+            "maxLength": 8192,
+            "minLength": 1,
+            "title": "Url",
+            "type": "string"
+          }
+        },
+        "required": [
+          "url"
+        ],
+        "title": "ReadRequest",
+        "type": "object"
+      },
+      "ReindexRequest": {
+        "description": "POST /v1/places/reindex \u2014 synchronize the places read index.",
+        "properties": {
+          "batch_size": {
+            "default": 1000,
+            "maximum": 20000.0,
+            "minimum": 1.0,
+            "title": "Batch Size",
+            "type": "integer"
+          },
+          "max_batches": {
+            "anyOf": [
+              {
+                "minimum": 1.0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Max Batches"
+          },
+          "mode": {
+            "default": "incremental",
+            "title": "Mode",
+            "type": "string"
+          }
+        },
+        "title": "ReindexRequest",
+        "type": "object"
+      },
+      "ReindexResult": {
+        "properties": {
+          "available": {
+            "default": true,
+            "title": "Available",
+            "type": "boolean"
+          },
+          "detail": {
+            "additionalProperties": true,
+            "title": "Detail",
+            "type": "object"
+          },
+          "failed": {
+            "default": 0,
+            "title": "Failed",
+            "type": "integer"
+          },
+          "indexed": {
+            "default": 0,
+            "title": "Indexed",
+            "type": "integer"
+          },
+          "mode": {
+            "default": "",
+            "title": "Mode",
+            "type": "string"
+          },
+          "scanned": {
+            "default": 0,
+            "title": "Scanned",
+            "type": "integer"
+          },
+          "status": {
+            "title": "Status",
+            "type": "string"
+          }
+        },
+        "required": [
+          "status"
+        ],
+        "title": "ReindexResult",
+        "type": "object"
+      },
+      "ResearchDepth": {
+        "enum": [
+          "quick",
+          "normal",
+          "deep"
+        ],
+        "title": "ResearchDepth",
+        "type": "string"
+      },
+      "ResearchRequest": {
+        "properties": {
+          "max_hops": {
+            "anyOf": [
+              {
+                "maximum": 4.0,
+                "minimum": 1.0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Max Hops"
+          },
+          "mode": {
+            "$ref": "#/components/schemas/SearchMode",
+            "default": "fast"
+          },
+          "query": {
+            "maxLength": 2000,
+            "minLength": 1,
+            "title": "Query",
+            "type": "string"
+          }
+        },
+        "required": [
+          "query"
+        ],
+        "title": "ResearchRequest",
+        "type": "object"
+      },
+      "ResolutionRunOut": {
+        "properties": {
+          "completed_at": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Completed At"
+          },
+          "cursor": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Cursor"
+          },
+          "error_summary": {
+            "additionalProperties": true,
+            "title": "Error Summary",
+            "type": "object"
+          },
+          "fields_written": {
+            "default": 0,
+            "title": "Fields Written",
+            "type": "integer"
+          },
+          "pairs_scored": {
+            "default": 0,
+            "title": "Pairs Scored",
+            "type": "integer"
+          },
+          "parameters": {
+            "additionalProperties": true,
+            "title": "Parameters",
+            "type": "object"
+          },
+          "places_created": {
+            "default": 0,
+            "title": "Places Created",
+            "type": "integer"
+          },
+          "places_merged": {
+            "default": 0,
+            "title": "Places Merged",
+            "type": "integer"
+          },
+          "records_scanned": {
+            "default": 0,
+            "title": "Records Scanned",
+            "type": "integer"
+          },
+          "resolver_version": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Resolver Version"
+          },
+          "resume_of": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Resume Of"
+          },
+          "run_id": {
+            "title": "Run Id",
+            "type": "integer"
+          },
+          "started_at": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Started At"
+          },
+          "status": {
+            "title": "Status",
+            "type": "string"
+          }
+        },
+        "required": [
+          "run_id",
+          "status"
+        ],
+        "title": "ResolutionRunOut",
+        "type": "object"
+      },
+      "ResolveRequest": {
+        "description": "POST /v1/resolve \u2014 run entity resolution over staged sources.",
+        "properties": {
+          "batch_size": {
+            "default": 200,
+            "maximum": 5000.0,
+            "minimum": 1.0,
+            "title": "Batch Size",
+            "type": "integer"
+          },
+          "provider": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Provider"
+          },
+          "resume_of": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Resume Of"
+          },
+          "since_id": {
+            "default": 0,
+            "title": "Since Id",
+            "type": "integer"
+          },
+          "threshold": {
+            "default": 0.62,
+            "maximum": 1.0,
+            "minimum": 0.0,
+            "title": "Threshold",
+            "type": "number"
+          }
+        },
+        "title": "ResolveRequest",
+        "type": "object"
+      },
+      "ResolveResult": {
+        "properties": {
+          "available": {
+            "default": true,
+            "title": "Available",
+            "type": "boolean"
+          },
+          "created": {
+            "default": 0,
+            "title": "Created",
+            "type": "integer"
+          },
+          "cursor": {
+            "default": 0,
+            "title": "Cursor",
+            "type": "integer"
+          },
+          "errors": {
+            "additionalProperties": true,
+            "title": "Errors",
+            "type": "object"
+          },
+          "fields_written": {
+            "default": 0,
+            "title": "Fields Written",
+            "type": "integer"
+          },
+          "merged": {
+            "default": 0,
+            "title": "Merged",
+            "type": "integer"
+          },
+          "resolver_version": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Resolver Version"
+          },
+          "resume_of": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Resume Of"
+          },
+          "run_id": {
+            "default": 0,
+            "title": "Run Id",
+            "type": "integer"
+          },
+          "scanned": {
+            "default": 0,
+            "title": "Scanned",
+            "type": "integer"
+          },
+          "scored": {
+            "default": 0,
+            "title": "Scored",
+            "type": "integer"
+          },
+          "status": {
+            "title": "Status",
+            "type": "string"
+          }
+        },
+        "required": [
+          "status"
+        ],
+        "title": "ResolveResult",
+        "type": "object"
+      },
+      "RetrievalObservation": {
+        "description": "A single retrieval provenance record for a normalized search result.",
+        "properties": {
+          "engine": {
+            "default": "",
+            "title": "Engine",
+            "type": "string"
+          },
+          "provider": {
+            "default": "",
+            "title": "Provider",
+            "type": "string"
+          },
+          "rank": {
+            "default": 0,
+            "title": "Rank",
+            "type": "integer"
+          },
+          "retrieved_at": {
+            "title": "Retrieved At",
+            "type": "string"
+          }
+        },
+        "title": "RetrievalObservation",
+        "type": "object"
+      },
+      "SearchBudget": {
+        "properties": {
+          "cost_used": {
+            "default": 0.0,
+            "description": "Current cost consumed",
+            "title": "Cost Used",
+            "type": "number"
+          },
+          "duration_used": {
+            "default": 0.0,
+            "description": "Elapsed processing time in seconds",
+            "minimum": 0.0,
+            "title": "Duration Used",
+            "type": "number"
+          },
+          "fetches_used": {
+            "default": 0,
+            "description": "URL fetches consumed",
+            "minimum": 0.0,
+            "title": "Fetches Used",
+            "type": "integer"
+          },
+          "followups_used": {
+            "default": 0,
+            "description": "Follow-up searches consumed",
+            "minimum": 0.0,
+            "title": "Followups Used",
+            "type": "integer"
+          },
+          "max_cost": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Maximum cost in USD (None = unlimited)",
+            "title": "Max Cost"
+          },
+          "max_duration": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Maximum processing duration in seconds (None = unlimited)",
+            "title": "Max Duration"
+          },
+          "max_fetches": {
+            "default": 8,
+            "description": "Maximum number of URLs to fetch and process",
+            "title": "Max Fetches",
+            "type": "integer"
+          },
+          "max_followups": {
+            "default": 1,
+            "description": "Maximum number of follow-up searches for missing evidence",
+            "title": "Max Followups",
+            "type": "integer"
+          },
+          "max_queries": {
+            "default": 5,
+            "description": "Maximum number of search queries allowed",
+            "title": "Max Queries",
+            "type": "integer"
+          },
+          "max_results": {
+            "default": 10,
+            "description": "Maximum number of results per query",
+            "title": "Max Results",
+            "type": "integer"
+          },
+          "max_tokens": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Maximum tokens in answer (None = unlimited)",
+            "title": "Max Tokens"
+          },
+          "queries_used": {
+            "default": 0,
+            "description": "Search queries consumed",
+            "minimum": 0.0,
+            "title": "Queries Used",
+            "type": "integer"
+          },
+          "tokens_used": {
+            "default": 0,
+            "description": "Inference tokens consumed",
+            "minimum": 0.0,
+            "title": "Tokens Used",
+            "type": "integer"
+          }
+        },
+        "title": "SearchBudget",
+        "type": "object"
+      },
+      "SearchMode": {
+        "enum": [
+          "fast",
+          "normal",
+          "deep"
+        ],
+        "title": "SearchMode",
+        "type": "string"
+      },
+      "SearchRequest": {
+        "description": "POST /v1/search \u2014 unified search (SPEC-v3 \u00a72 + research engine).\n\nWithout ``mode``: legacy raw multi-provider search returning\n``results`` + ``understanding``.  With ``mode``\n(``fast`` | ``balanced`` | ``deep``, aliases ``quick``/``normal``/``auto``\naccepted): the full research pipeline runs \u2014 LLM query planning,\nparallel SearXNG search, RRF fusion, AI reranking, Firecrawl scraping,\npassage reranking, gap-driven follow-ups, synthesis, and claim\nverification \u2014 and the response adds ``answer``, ``sources``,\n``search`` stats and ``timings`` while keeping ``results`` and\n``understanding`` as compatibility keys.\n\nConversation context (P4): ``session_id`` loads the stored session\nstate (Redis ``convctx:*``, in-memory fallback); ``history``\n(``[role, text]`` turns) supplies stateless context. When both are\npresent they merge \u2014 the stored state wins on conflicting fields.\nOn the research lanes a short/anaphoric follow-up is rewritten into\na standalone query before the pipeline runs, and the response adds\n``session_id`` (echo) + ``followup_resolved``/``resolved_query``.",
+        "properties": {
+          "citations": {
+            "default": true,
+            "title": "Citations",
+            "type": "boolean"
+          },
+          "freshness": {
+            "anyOf": [
+              {
+                "pattern": "^(any|day|week|month)$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Freshness"
+          },
+          "history": {
+            "anyOf": [
+              {
+                "items": {},
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "History"
+          },
+          "language": {
+            "anyOf": [
+              {
+                "maxLength": 8,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Language"
+          },
+          "max_results": {
+            "default": 10,
+            "maximum": 50.0,
+            "minimum": 1.0,
+            "title": "Max Results",
+            "type": "integer"
+          },
+          "mode": {
+            "anyOf": [
+              {
+                "pattern": "^(fast|balanced|deep|quick|normal|auto|research)$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Mode"
+          },
+          "query": {
+            "maxLength": 2000,
+            "minLength": 1,
+            "title": "Query",
+            "type": "string"
+          },
+          "session_id": {
+            "anyOf": [
+              {
+                "maxLength": 64,
+                "pattern": "^[A-Za-z0-9_-]+$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Session Id"
+          },
+          "sources": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Sources"
+          },
+          "stream": {
+            "default": false,
+            "title": "Stream",
+            "type": "boolean"
+          },
+          "type": {
+            "default": "web",
+            "pattern": "^(web|news|image)$",
+            "title": "Type",
+            "type": "string"
+          }
+        },
+        "required": [
+          "query"
+        ],
+        "title": "SearchRequest",
+        "type": "object"
+      },
+      "SearchToolRequest": {
+        "description": "search() \u2014 find information on the web.",
+        "properties": {
+          "lang": {
+            "default": "en",
+            "title": "Lang",
+            "type": "string"
+          },
+          "max_results": {
+            "default": 10,
+            "title": "Max Results",
+            "type": "integer"
+          },
+          "query": {
+            "title": "Query",
+            "type": "string"
+          },
+          "type": {
+            "$ref": "#/components/schemas/SearchType",
+            "default": "web"
+          }
+        },
+        "required": [
+          "query"
+        ],
+        "title": "SearchToolRequest",
+        "type": "object"
+      },
+      "SearchToolResponse": {
+        "properties": {
+          "elapsed_seconds": {
+            "default": 0.0,
+            "title": "Elapsed Seconds",
+            "type": "number"
+          },
+          "query": {
+            "title": "Query",
+            "type": "string"
+          },
+          "results": {
+            "default": [],
+            "items": {
+              "$ref": "#/components/schemas/Source"
+            },
+            "title": "Results",
+            "type": "array"
+          },
+          "type": {
+            "title": "Type",
+            "type": "string"
+          }
+        },
+        "required": [
+          "query",
+          "type"
+        ],
+        "title": "SearchToolResponse",
+        "type": "object"
+      },
+      "SearchType": {
+        "enum": [
+          "web",
+          "news",
+          "image",
+          "video"
+        ],
+        "title": "SearchType",
+        "type": "string"
+      },
+      "Source": {
+        "description": "A retrieved source with full provenance metadata.",
+        "properties": {
+          "authority_score": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Authority Score"
+          },
+          "authority_type": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Authority Type"
+          },
+          "canonical_url": {
+            "default": "",
+            "title": "Canonical Url",
+            "type": "string"
+          },
+          "content": {
+            "default": "",
+            "title": "Content",
+            "type": "string"
+          },
+          "content_length": {
+            "default": 0,
+            "title": "Content Length",
+            "type": "integer"
+          },
+          "content_provider": {
+            "default": "",
+            "title": "Content Provider",
+            "type": "string"
+          },
+          "description": {
+            "default": "",
+            "title": "Description",
+            "type": "string"
+          },
+          "domain": {
+            "default": "",
+            "title": "Domain",
+            "type": "string"
+          },
+          "error": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Error"
+          },
+          "fingerprint": {
+            "default": "",
+            "title": "Fingerprint",
+            "type": "string"
+          },
+          "published_at": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Published At"
+          },
+          "retrieval_observations": {
+            "default": [],
+            "items": {
+              "$ref": "#/components/schemas/RetrievalObservation"
+            },
+            "title": "Retrieval Observations",
+            "type": "array"
+          },
+          "retrieved_at": {
+            "title": "Retrieved At",
+            "type": "string"
+          },
+          "score": {
+            "default": 0.0,
+            "title": "Score",
+            "type": "number"
+          },
+          "search_provider": {
+            "default": "",
+            "title": "Search Provider",
+            "type": "string"
+          },
+          "source_id": {
+            "default": "",
+            "title": "Source Id",
+            "type": "string"
+          },
+          "source_lane": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Source Lane"
+          },
+          "title": {
+            "default": "",
+            "title": "Title",
+            "type": "string"
+          },
+          "trust": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Trust"
+          },
+          "trust_reasons": {
+            "default": [],
+            "items": {
+              "type": "string"
+            },
+            "title": "Trust Reasons",
+            "type": "array"
+          },
+          "url": {
+            "title": "Url",
+            "type": "string"
+          }
+        },
+        "required": [
+          "url"
+        ],
+        "title": "Source",
+        "type": "object"
+      },
+      "ValidationError": {
+        "properties": {
+          "ctx": {
+            "title": "Context",
+            "type": "object"
+          },
+          "input": {
+            "title": "Input"
+          },
+          "loc": {
+            "items": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "integer"
+                }
+              ]
+            },
+            "title": "Location",
+            "type": "array"
+          },
+          "msg": {
+            "title": "Message",
+            "type": "string"
+          },
+          "type": {
+            "title": "Error Type",
+            "type": "string"
+          }
+        },
+        "required": [
+          "loc",
+          "msg",
+          "type"
+        ],
+        "title": "ValidationError",
+        "type": "object"
+      },
+      "VerifyRequest": {
+        "properties": {
+          "claims": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Claims",
+            "type": "array"
+          },
+          "clusters": {
+            "items": {
+              "$ref": "#/components/schemas/EvidenceCluster"
+            },
+            "title": "Clusters",
+            "type": "array"
+          },
+          "max_age_days": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Max Age Days"
+          },
+          "sources": {
+            "items": {
+              "$ref": "#/components/schemas/Source"
+            },
+            "title": "Sources",
+            "type": "array"
+          }
+        },
+        "title": "VerifyRequest",
+        "type": "object"
+      }
+    }
+  },
+  "info": {
+    "description": "Unified search router for Hermes",
+    "title": "Search Hub",
+    "version": "3.0.0"
+  },
+  "openapi": "3.1.0",
+  "paths": {
+    "/": {
+      "get": {
+        "operationId": "root__get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Root"
+      }
+    },
+    "/answer": {
+      "post": {
+        "description": "answer: Full pipeline \u2014 search \u2192 scrape \u2192 rerank \u2192 synthesize with citations.\n\nThis is the main tool for synthesized answers with evidence.\ndepth=normal \u2192 search + scrape top 5 + rerank + synthesize\ndepth=deep   \u2192 above + deeper synthesis + follow-up questions\n\nReturns answer + evidence (sources with full metadata + citations).",
+        "operationId": "answer_answer_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AnswerToolRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AnswerToolResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Answer"
+      }
+    },
+    "/code_search": {
+      "post": {
+        "description": "code_search: Search code repositories via GitHub + grep.app.\n\nOptionally filter by repo (e.g. repo=\"firecrawl/firecrawl\").",
+        "operationId": "code_search_code_search_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CodeSearchToolRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CodeSearchToolResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Code Search"
+      }
+    },
+    "/fetch": {
+      "post": {
+        "description": "fetch: Read content from a URL.\n\nmode=scrape \u2192 read single page, return clean Markdown\nmode=crawl  \u2192 crawl multiple pages, return content for each\nmode=map    \u2192 discover all URLs on site, no content",
+        "operationId": "fetch_fetch_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/FetchToolRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FetchToolResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Fetch"
+      }
+    },
+    "/health": {
+      "get": {
+        "operationId": "health_health_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HealthStatus"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Health"
+      }
+    },
+    "/metrics": {
+      "get": {
+        "description": "Aggregate quality overview across all logged queries.",
+        "operationId": "metrics_overview_metrics_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Metrics Overview"
+      }
+    },
+    "/metrics/quality": {
+      "get": {
+        "description": "Daily quality trend for the last `days` days (oldest first).",
+        "operationId": "metrics_quality_metrics_quality_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "days",
+            "required": false,
+            "schema": {
+              "default": 7,
+              "title": "Days",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Metrics Quality"
+      }
+    },
+    "/metrics/queries": {
+      "get": {
+        "description": "Most recent query-log entries (newest first).",
+        "operationId": "metrics_queries_metrics_queries_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "default": 50,
+              "title": "Limit",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Metrics Queries"
+      }
+    },
+    "/search": {
+      "post": {
+        "description": "search: Find information on the web.\n\ntype=web  \u2192 general web search\ntype=news \u2192 recent news articles\ntype=image \u2192 image search\n\nReturns ranked sources with URL, title, description, domain, score.",
+        "operationId": "search_search_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SearchToolRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SearchToolResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Search"
+      }
+    },
+    "/v1/admin/lookup": {
+      "get": {
+        "description": "Point \u2192 current administrative units (commune first).\n\nPostGIS ST_Contains when seeded into Postgres; otherwise the bundled\nseed's simplified GeoJSON boundaries (P14B).",
+        "operationId": "admin_lookup_v1_admin_lookup_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "lat",
+            "required": true,
+            "schema": {
+              "title": "Lat",
+              "type": "number"
+            }
+          },
+          {
+            "in": "query",
+            "name": "lon",
+            "required": true,
+            "schema": {
+              "title": "Lon",
+              "type": "number"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/AdminUnitOut"
+                  },
+                  "title": "Response Admin Lookup V1 Admin Lookup Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Admin Lookup",
+        "tags": [
+          "v1"
+        ]
+      }
+    },
+    "/v1/admin/resolve": {
+      "get": {
+        "description": "Resolve an address/place string onto the administrative graph.\n\nHistorical inputs (\"Y\u00ean D\u0169ng, B\u1eafc Giang\") return both the matched\nhistorical units and the current-era units reached via transition\nedges, with the provenance-bearing path between them.",
+        "operationId": "admin_resolve_v1_admin_resolve_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "q",
+            "required": true,
+            "schema": {
+              "title": "Q",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminResolveResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Admin Resolve",
+        "tags": [
+          "v1"
+        ]
+      }
+    },
+    "/v1/answer": {
+      "post": {
+        "description": "POST /v1/answer \u2014 retrieval + evidence + Hermes synthesis + citation validation.",
+        "operationId": "answer_v1_answer_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SearchRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Answer",
+        "tags": [
+          "v1"
+        ]
+      }
+    },
+    "/v1/auth/check": {
+      "get": {
+        "description": "Credential self-verification probe (P1.2 follow-up).\n\nAlways public \u2014 the response body IS the verdict, so it never\n401s/403s: a client (e.g. the MCP startup script) sends its Bearer key\nand learns whether the key resolves and which scopes it holds, without\nneeding an admin scope to ask.",
+        "operationId": "auth_check_v1_auth_check_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AuthCheckResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Auth Check",
+        "tags": [
+          "v1"
+        ]
+      }
+    },
+    "/v1/business/search": {
+      "post": {
+        "description": "Local business search: anchor \u2192 PostGIS \u2192 OSM \u2192 web-extract.",
+        "operationId": "business_search_v1_business_search_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/BusinessSearchRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BusinessSearchResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Business Search",
+        "tags": [
+          "v1"
+        ]
+      }
+    },
+    "/v1/capabilities": {
+      "get": {
+        "operationId": "capabilities_v1_capabilities_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CapabilitiesResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Capabilities",
+        "tags": [
+          "v1"
+        ]
+      }
+    },
+    "/v1/chat/completions": {
+      "post": {
+        "operationId": "chat_completions_v1_chat_completions_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ChatCompletionRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Chat Completions",
+        "tags": [
+          "openai"
+        ]
+      }
+    },
+    "/v1/evidence": {
+      "post": {
+        "description": "POST /v1/evidence \u2014 structured sources \u2192 reranked cited passages.\n\nEach source is read through the tiered, SSRF-guarded reader\n(``pipeline.reader`` \u2192 ``crawler.netguard``), chunked and reranked by\nthe shared ``pipeline.passage_reranker`` \u2014 the same evidence path the\nresearch pipeline uses, not a parallel implementation. Search-side\nprovenance (``source_id``/``canonical_url``/``published_at``/\n``search_provider``) is echoed back on every item so citations map\nclaim \u2192 passage_id \u2192 source_id \u2192 URL. Backed by\n``pipeline.evidence_fetch.build_evidence``.",
+        "operationId": "evidence_v1_evidence_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/EvidenceRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Evidence",
+        "tags": [
+          "v1"
+        ]
+      }
+    },
+    "/v1/health": {
+      "get": {
+        "description": "Public health: minimal shape. Full per-service detail requires\nadmin:debug scope (or API_AUTH_ENABLED=false in local/dev).",
+        "operationId": "health_v1_health_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Health",
+        "tags": [
+          "v1"
+        ]
+      }
+    },
+    "/v1/images": {
+      "post": {
+        "description": "POST /v1/images \u2014 image search: own corpus first, live web backfill.\n\nQdrant image collection (when enabled) supplies corpus hits; thin or\ndisabled corpus falls through to the live image lane so the endpoint\nstill answers before the CLIP collection is populated.",
+        "operationId": "images_v1_images_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SearchRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Images",
+        "tags": [
+          "v1"
+        ]
+      }
+    },
+    "/v1/ingest/runs": {
+      "get": {
+        "description": "Recent ingestion runs (P15 observability).",
+        "operationId": "ingest_runs_v1_ingest_runs_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "default": 50,
+              "title": "Limit",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/IngestionRunOut"
+                  },
+                  "title": "Response Ingest Runs V1 Ingest Runs Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Ingest Runs",
+        "tags": [
+          "v1"
+        ]
+      }
+    },
+    "/v1/ingest/{provider}": {
+      "post": {
+        "description": "Ingest raw provider records into ``place_source_records`` staging.\n\nRuns are recorded in ``ingestion_runs``; invalid records go to the\ndead-letter table instead of aborting the batch. Degrades to\n``available=false`` when hub-postgres is unconfigured.",
+        "operationId": "ingest_provider_v1_ingest__provider__post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "provider",
+            "required": true,
+            "schema": {
+              "title": "Provider",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/IngestRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IngestResult"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Ingest Provider",
+        "tags": [
+          "v1"
+        ]
+      }
+    },
+    "/v1/models": {
+      "get": {
+        "operationId": "list_models_v1_models_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "List Models",
+        "tags": [
+          "openai"
+        ]
+      }
+    },
+    "/v1/news": {
+      "post": {
+        "description": "POST /v1/news \u2014 news-specific search with realtime freshness.",
+        "operationId": "news_v1_news_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SearchRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "News",
+        "tags": [
+          "v1"
+        ]
+      }
+    },
+    "/v1/places/autocomplete": {
+      "get": {
+        "description": "Prefix completion over place names/aliases (P17).\n\nEdge-ngram index fields + optional geo decay; permanently closed\nplaces never surface.",
+        "operationId": "places_autocomplete_v1_places_autocomplete_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "q",
+            "required": false,
+            "schema": {
+              "default": "",
+              "title": "Q",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "lat",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "number"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Lat"
+            }
+          },
+          {
+            "in": "query",
+            "name": "lon",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "number"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Lon"
+            }
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "default": 10,
+              "title": "Limit",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/PlaceSuggestionOut"
+                  },
+                  "title": "Response Places Autocomplete V1 Places Autocomplete Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Places Autocomplete",
+        "tags": [
+          "v1"
+        ]
+      }
+    },
+    "/v1/places/reindex": {
+      "post": {
+        "description": "Sync the serving index from the canonical graph (P17).\n\n``incremental`` resumes from the durable cursor; ``full`` rebuilds a\nfresh concrete index and swaps the alias atomically; ``reconcile``\ndrops index docs whose canonical row no longer exists. Canonical data\nis never mutated.",
+        "operationId": "places_reindex_v1_places_reindex_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ReindexRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReindexResult"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Places Reindex",
+        "tags": [
+          "v1"
+        ]
+      }
+    },
+    "/v1/places/search": {
+      "get": {
+        "description": "Search canonical places (P17 serving path).\n\nOpenSearch candidates + PostGIS geo precision + weighted fusion; each\ndependency degrades independently (cache \u2192 OS \u2192 PostGIS fallback).\n``debug=1`` adds per-result score components. P17.1 rich filters:\n``open_now`` (request-time verdict), ``min_rating``, ``price_level``,\nand ``sort`` (``distance`` | ``rating`` | ``popularity``).",
+        "operationId": "places_search_v1_places_search_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "q",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Q"
+            }
+          },
+          {
+            "in": "query",
+            "name": "lat",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "number"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Lat"
+            }
+          },
+          {
+            "in": "query",
+            "name": "lon",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "number"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Lon"
+            }
+          },
+          {
+            "in": "query",
+            "name": "radius_m",
+            "required": false,
+            "schema": {
+              "default": 2000.0,
+              "title": "Radius M",
+              "type": "number"
+            }
+          },
+          {
+            "in": "query",
+            "name": "admin_unit_id",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "integer"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Admin Unit Id"
+            }
+          },
+          {
+            "in": "query",
+            "name": "category",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Category"
+            }
+          },
+          {
+            "in": "query",
+            "name": "status",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Status"
+            }
+          },
+          {
+            "in": "query",
+            "name": "bbox",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Bbox"
+            }
+          },
+          {
+            "in": "query",
+            "name": "admin_contains",
+            "required": false,
+            "schema": {
+              "default": false,
+              "title": "Admin Contains",
+              "type": "boolean"
+            }
+          },
+          {
+            "in": "query",
+            "name": "debug",
+            "required": false,
+            "schema": {
+              "default": false,
+              "title": "Debug",
+              "type": "boolean"
+            }
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "default": 20,
+              "title": "Limit",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "open_now",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "boolean"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Open Now"
+            }
+          },
+          {
+            "in": "query",
+            "name": "min_rating",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "number"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Min Rating"
+            }
+          },
+          {
+            "in": "query",
+            "name": "price_level",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Price Level"
+            }
+          },
+          {
+            "in": "query",
+            "name": "sort",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Sort"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/PlaceOut"
+                  },
+                  "title": "Response Places Search V1 Places Search Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Places Search",
+        "tags": [
+          "v1"
+        ]
+      }
+    },
+    "/v1/places/{place_id}": {
+      "get": {
+        "description": "Canonical place + source lineage + per-field provenance (P17).\n\nServes the cache \u2192 Postgres \u2192 index fallback chain. Postgres remains\nthe source of truth; when it is down the indexed document answers in\ndegraded form (no provenance). When Postgres is unreachable AND the\nindex cannot confirm the place, the endpoint answers 503 rather than\nan unverifiable 404.",
+        "operationId": "place_detail_v1_places__place_id__get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "place_id",
+            "required": true,
+            "schema": {
+              "title": "Place Id",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PlaceDetailOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Place Detail",
+        "tags": [
+          "v1"
+        ]
+      }
+    },
+    "/v1/providers": {
+      "get": {
+        "operationId": "providers_v1_providers_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/ProviderStatus"
+                  },
+                  "title": "Response Providers V1 Providers Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Providers",
+        "tags": [
+          "v1"
+        ]
+      }
+    },
+    "/v1/providers/health": {
+      "get": {
+        "description": "Provider health scores + circuit state (Phase 2 federation layer).\n\nEach entry: health_score, status (healthy/degraded/unhealthy), circuit\n(closed/open/half_open), rolling rates (success/timeout/captcha),\nlatency percentiles, yield, consecutive_failures.",
+        "operationId": "providers_health_v1_providers_health_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Providers Health",
+        "tags": [
+          "v1"
+        ]
+      }
+    },
+    "/v1/read": {
+      "post": {
+        "operationId": "read_v1_read_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ReadRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Read",
+        "tags": [
+          "v1"
+        ]
+      }
+    },
+    "/v1/research": {
+      "post": {
+        "operationId": "research_v1_research_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ResearchRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EvidencePack"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Research",
+        "tags": [
+          "v1"
+        ]
+      }
+    },
+    "/v1/research/stream": {
+      "post": {
+        "operationId": "research_stream_v1_research_stream_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ResearchRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Research Stream",
+        "tags": [
+          "v1"
+        ]
+      }
+    },
+    "/v1/resolution/runs": {
+      "get": {
+        "description": "Recent resolution runs (P16 observability).",
+        "operationId": "resolution_runs_v1_resolution_runs_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "default": 50,
+              "title": "Limit",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/ResolutionRunOut"
+                  },
+                  "title": "Response Resolution Runs V1 Resolution Runs Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Resolution Runs",
+        "tags": [
+          "v1"
+        ]
+      }
+    },
+    "/v1/resolve": {
+      "post": {
+        "description": "Resolve ``place_source_records`` into ``canonical_places``.\n\nMerge-or-create per record with field-level provenance; resumable via\n``resume_of``. Degrades to ``available=false`` without hub-postgres.",
+        "operationId": "resolve_sources_v1_resolve_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ResolveRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResolveResult"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Resolve Sources",
+        "tags": [
+          "v1"
+        ]
+      }
+    },
+    "/v1/search": {
+      "post": {
+        "description": "Unified search \u2014 raw results by default, research engine when ``mode`` set.",
+        "operationId": "search_v1_v1_search_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SearchRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Search V1",
+        "tags": [
+          "v1"
+        ]
+      }
+    },
+    "/v1/verify": {
+      "post": {
+        "operationId": "verify_v1_verify_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/VerifyRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/ClaimVerification"
+                  },
+                  "title": "Response Verify V1 Verify Post",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Verify",
+        "tags": [
+          "v1"
+        ]
+      }
+    }
+  }
+}

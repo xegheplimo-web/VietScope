@@ -1,0 +1,30 @@
+{
+  "properties": {
+    "citation_text": {
+      "default": "",
+      "description": "Rendered citation text",
+      "title": "Citation Text",
+      "type": "string"
+    },
+    "claim_id": {
+      "description": "Claim identifier",
+      "title": "Claim Id",
+      "type": "string"
+    },
+    "evidence": {
+      "default": [],
+      "description": "Evidence references",
+      "items": {
+        "additionalProperties": true,
+        "type": "object"
+      },
+      "title": "Evidence",
+      "type": "array"
+    }
+  },
+  "required": [
+    "claim_id"
+  ],
+  "title": "CitationV2",
+  "type": "object"
+}

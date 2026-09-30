@@ -1,0 +1,12 @@
+{"query": "cách nấu phở bò gia truyền tại nhà", "expected_urls": ["vnexpress.net", "monngonmoingay.com", "cooky.vn"], "category": "vi_general", "region": "vn", "expected_facts": ["phở"]}
+{"query": "lịch âm dương Việt Nam hôm nay", "expected_urls": ["lichngaytot.com", "thuthuatvietnam.com"], "category": "vi_general", "region": "vn", "time_sensitive": true}
+{"query": "thủ tục đổi bằng lái xe ô tô 2026", "expected_urls": ["dichvucong.gov.vn", "mt.gov.vn", "thuvienphapluat.vn"], "category": "vi_general", "region": "vn", "expected_facts": ["bằng lái"]}
+{"query": "cách học tiếng Anh giao tiếp hiệu quả", "expected_urls": ["vnexpress.net", "ielts-fighter.com", "youtube.com"], "category": "vi_general", "region": "vn"}
+{"query": "bảo hiểm xã hội một lần rút được không", "expected_urls": ["baohiemxahoi.gov.vn", "thuvienphapluat.vn", "luatvietnam.vn"], "category": "vi_general", "region": "vn"}
+{"query": "cách trồng rau sạch tại nhà ban công", "expected_urls": ["vnexpress.net", "youtube.com", "nongnghiep.vn"], "category": "vi_general", "region": "vn"}
+{"query": "kinh nghiệm phỏng vấn xin việc IT", "expected_urls": ["itviec.com", "topcv.vn", "vnexpress.net"], "category": "vi_general", "region": "vn"}
+{"query": "cách đăng ký chữ ký số cá nhân ở đâu", "expected_urls": ["mof.gov.vn", "dichvucong.gov.vn", "vnpt.com.vn"], "category": "vi_general", "region": "vn"}
+{"query": "công thức làm bánh flan caramel ngon", "expected_urls": ["cooky.vn", "monngonmoingay.com", "youtube.com"], "category": "vi_general", "region": "vn"}
+{"query": "cách checkin online Vietnam Airlines", "expected_urls": ["vietnamairlines.com", "vnexpress.net"], "category": "vi_general", "region": "vn"}
+{"query": "đổi tiền Việt Nam sang đô ở đâu uy tín", "expected_urls": ["sbv.gov.vn", "vietcombank.com.vn", "cafef.vn"], "category": "vi_general", "region": "vn"}
+{"query": "dịch vụ chuyển phát nhanh nội địa uy tín giá rẻ", "expected_urls": ["vnpost.vn", "ghn.vn", "ghtk.vn", "vnexpress.net"], "category": "vi_general", "region": "vn"}

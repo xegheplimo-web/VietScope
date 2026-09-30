@@ -1,0 +1,113 @@
+{
+  "settings": {
+    "index": {
+      "number_of_shards": 1,
+      "number_of_replicas": 0,
+      "refresh_interval": "5s",
+      "max_result_window": 10000
+    },
+    "analysis": {
+      "normalizer": {
+        "vn_lower": {
+          "type": "custom",
+          "filter": ["lowercase", "asciifolding"]
+        }
+      },
+      "analyzer": {
+        "vn_text": {
+          "type": "custom",
+          "tokenizer": "standard",
+          "filter": ["lowercase", "vn_stop"]
+        },
+        "vn_folded": {
+          "type": "custom",
+          "tokenizer": "standard",
+          "filter": ["lowercase", "asciifolding", "vn_stop"]
+        },
+        "vn_autocomplete": {
+          "type": "custom",
+          "tokenizer": "vn_edge",
+          "filter": ["lowercase", "asciifolding"]
+        },
+        "vn_autocomplete_search": {
+          "type": "custom",
+          "tokenizer": "standard",
+          "filter": ["lowercase", "asciifolding"]
+        }
+      },
+      "tokenizer": {
+        "vn_edge": {
+          "type": "edge_ngram",
+          "min_gram": 2,
+          "max_gram": 15,
+          "token_chars": ["letter", "digit"]
+        }
+      },
+      "filter": {
+        "vn_stop": {
+          "type": "stop",
+          "stopwords": ["là", "của", "và", "có", "được", "cho", "về", "từ", "đến", "tại", "trên", "dưới", "the", "is", "a", "an", "and", "or", "of", "to", "in", "on", "at"]
+        }
+      }
+    }
+  },
+  "mappings": {
+    "properties": {
+      "place_id": { "type": "keyword" },
+      "business_id": { "type": "keyword" },
+      "document_version": { "type": "integer" },
+      "name": {
+        "type": "text",
+        "analyzer": "vn_text",
+        "fields": {
+          "exact": { "type": "keyword", "normalizer": "vn_lower" },
+          "folded": { "type": "text", "analyzer": "vn_folded" },
+          "ac": {
+            "type": "text",
+            "analyzer": "vn_autocomplete",
+            "search_analyzer": "vn_autocomplete_search"
+          }
+        }
+      },
+      "normalized_name": {
+        "type": "text",
+        "analyzer": "vn_folded",
+        "fields": {
+          "ac": {
+            "type": "text",
+            "analyzer": "vn_autocomplete",
+            "search_analyzer": "vn_autocomplete_search"
+          }
+        }
+      },
+      "aliases": {
+        "type": "text",
+        "analyzer": "vn_folded",
+        "fields": {
+          "ac": {
+            "type": "text",
+            "analyzer": "vn_autocomplete",
+            "search_analyzer": "vn_autocomplete_search"
+          }
+        }
+      },
+      "category_ids": { "type": "keyword" },
+      "admin_unit_id": { "type": "keyword" },
+      "status": { "type": "keyword" },
+      "confidence": { "type": "float" },
+      "freshness_score": { "type": "float" },
+      "source_count": { "type": "integer" },
+      "rating": { "type": "float" },
+      "review_count": { "type": "integer" },
+      "price_level": { "type": "keyword" },
+      "primary_image_url": { "type": "keyword", "index": false },
+      "images": { "type": "keyword", "index": false },
+      "phone": { "type": "keyword" },
+      "website": { "type": "keyword" },
+      "website_domain": { "type": "keyword" },
+      "opening_hours": { "type": "object", "enabled": false },
+      "last_verified_at": { "type": "date" },
+      "location": { "type": "geo_point" }
+    }
+  }
+}

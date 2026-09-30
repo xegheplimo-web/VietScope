@@ -1,0 +1,62 @@
+# Dependabot — automated dependency PRs.
+# `cooldown.default-days: 7` is the enforcement half of
+# quality-gates.yml → dependency_min_release_age_days (uv `exclude-newer`
+# covers local `uv lock`; this covers update PRs).
+version: 2
+
+updates:
+  # Python deps — uv.lock is the source of truth (pyproject.toml + uv.lock)
+  - package-ecosystem: "uv"
+    directory: "/search-router"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+    cooldown:
+      default-days: 7
+    open-pull-requests-limit: 5
+    groups:
+      # Collapse noise: one PR for minor+patch bumps, majors stay separate
+      # so a breaking release never hides inside a routine update.
+      python-minor-patch:
+        applies-to: version-updates
+        update-types: ["minor", "patch"]
+    labels: ["dependencies", "python"]
+
+  # GitHub Actions — keeps action pins current
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+    cooldown:
+      default-days: 7
+    groups:
+      actions:
+        applies-to: version-updates
+        update-types: ["minor", "patch"]
+    labels: ["dependencies", "ci"]
+
+  # Base images in Dockerfiles
+  - package-ecosystem: "docker"
+    directory: "/search-router"
+    schedule:
+      interval: "weekly"
+    cooldown:
+      default-days: 7
+    labels: ["dependencies", "docker"]
+
+  # Service images in docker-compose.yml
+  - package-ecosystem: "docker-compose"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+    cooldown:
+      default-days: 7
+    labels: ["dependencies", "docker"]
+
+  # Vendor submodules (firecrawl, searxng)
+  - package-ecosystem: "gitsubmodule"
+    directory: "/"
+    schedule:
+      interval: "monthly"
+    labels: ["dependencies", "submodule"]

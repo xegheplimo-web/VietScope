@@ -1,0 +1,457 @@
+{
+  "places": {
+    "mappings": {
+      "properties": {
+        "admin_unit_id": {
+          "type": "keyword"
+        },
+        "aliases": {
+          "analyzer": "vn_folded",
+          "fields": {
+            "ac": {
+              "analyzer": "vn_autocomplete",
+              "search_analyzer": "vn_autocomplete_search",
+              "type": "text"
+            }
+          },
+          "type": "text"
+        },
+        "business_id": {
+          "type": "keyword"
+        },
+        "category_ids": {
+          "type": "keyword"
+        },
+        "confidence": {
+          "type": "float"
+        },
+        "document_version": {
+          "type": "integer"
+        },
+        "freshness_score": {
+          "type": "float"
+        },
+        "images": {
+          "index": false,
+          "type": "keyword"
+        },
+        "last_verified_at": {
+          "type": "date"
+        },
+        "location": {
+          "type": "geo_point"
+        },
+        "name": {
+          "analyzer": "vn_text",
+          "fields": {
+            "ac": {
+              "analyzer": "vn_autocomplete",
+              "search_analyzer": "vn_autocomplete_search",
+              "type": "text"
+            },
+            "exact": {
+              "normalizer": "vn_lower",
+              "type": "keyword"
+            },
+            "folded": {
+              "analyzer": "vn_folded",
+              "type": "text"
+            }
+          },
+          "type": "text"
+        },
+        "normalized_name": {
+          "analyzer": "vn_folded",
+          "fields": {
+            "ac": {
+              "analyzer": "vn_autocomplete",
+              "search_analyzer": "vn_autocomplete_search",
+              "type": "text"
+            }
+          },
+          "type": "text"
+        },
+        "opening_hours": {
+          "enabled": false,
+          "type": "object"
+        },
+        "phone": {
+          "type": "keyword"
+        },
+        "place_id": {
+          "type": "keyword"
+        },
+        "price_level": {
+          "type": "keyword"
+        },
+        "primary_image_url": {
+          "index": false,
+          "type": "keyword"
+        },
+        "rating": {
+          "type": "float"
+        },
+        "review_count": {
+          "type": "integer"
+        },
+        "source_count": {
+          "type": "integer"
+        },
+        "status": {
+          "type": "keyword"
+        },
+        "website": {
+          "type": "keyword"
+        },
+        "website_domain": {
+          "type": "keyword"
+        }
+      }
+    },
+    "settings": {
+      "analysis": {
+        "analyzer": {
+          "vn_autocomplete": {
+            "filter": [
+              "lowercase",
+              "asciifolding"
+            ],
+            "tokenizer": "vn_edge",
+            "type": "custom"
+          },
+          "vn_autocomplete_search": {
+            "filter": [
+              "lowercase",
+              "asciifolding"
+            ],
+            "tokenizer": "standard",
+            "type": "custom"
+          },
+          "vn_folded": {
+            "filter": [
+              "lowercase",
+              "asciifolding",
+              "vn_stop"
+            ],
+            "tokenizer": "standard",
+            "type": "custom"
+          },
+          "vn_text": {
+            "filter": [
+              "lowercase",
+              "vn_stop"
+            ],
+            "tokenizer": "standard",
+            "type": "custom"
+          }
+        },
+        "filter": {
+          "vn_stop": {
+            "stopwords": [
+              "l\u00e0",
+              "c\u1ee7a",
+              "v\u00e0",
+              "c\u00f3",
+              "\u0111\u01b0\u1ee3c",
+              "cho",
+              "v\u1ec1",
+              "t\u1eeb",
+              "\u0111\u1ebfn",
+              "t\u1ea1i",
+              "tr\u00ean",
+              "d\u01b0\u1edbi",
+              "the",
+              "is",
+              "a",
+              "an",
+              "and",
+              "or",
+              "of",
+              "to",
+              "in",
+              "on",
+              "at"
+            ],
+            "type": "stop"
+          }
+        },
+        "normalizer": {
+          "vn_lower": {
+            "filter": [
+              "lowercase",
+              "asciifolding"
+            ],
+            "type": "custom"
+          }
+        },
+        "tokenizer": {
+          "vn_edge": {
+            "max_gram": 15,
+            "min_gram": 2,
+            "token_chars": [
+              "letter",
+              "digit"
+            ],
+            "type": "edge_ngram"
+          }
+        }
+      },
+      "index": {
+        "max_result_window": 10000,
+        "number_of_replicas": 0,
+        "number_of_shards": 1,
+        "refresh_interval": "5s"
+      }
+    }
+  },
+  "web_documents": {
+    "mappings": {
+      "properties": {
+        "ai_generated_score": {
+          "type": "float"
+        },
+        "author": {
+          "type": "keyword"
+        },
+        "canonical_url": {
+          "type": "keyword"
+        },
+        "content_hash": {
+          "type": "keyword"
+        },
+        "crawled_at": {
+          "type": "date"
+        },
+        "description": {
+          "analyzer": "vn_analyzer",
+          "type": "text"
+        },
+        "doc_id": {
+          "type": "keyword"
+        },
+        "domain": {
+          "type": "keyword"
+        },
+        "http_status": {
+          "type": "integer"
+        },
+        "lang": {
+          "type": "keyword"
+        },
+        "paywalled": {
+          "type": "boolean"
+        },
+        "published_at": {
+          "type": "date"
+        },
+        "published_confidence": {
+          "type": "float"
+        },
+        "quality_score": {
+          "type": "float"
+        },
+        "render_mode": {
+          "type": "keyword"
+        },
+        "simhash": {
+          "type": "keyword"
+        },
+        "source_type": {
+          "type": "keyword"
+        },
+        "title": {
+          "analyzer": "vn_analyzer",
+          "type": "text"
+        },
+        "url": {
+          "type": "keyword"
+        },
+        "word_count": {
+          "type": "integer"
+        }
+      }
+    },
+    "settings": {
+      "analysis": {
+        "analyzer": {
+          "vn_analyzer": {
+            "filter": [
+              "lowercase",
+              "vn_stop"
+            ],
+            "tokenizer": "standard",
+            "type": "custom"
+          }
+        },
+        "filter": {
+          "vn_stop": {
+            "stopwords": [
+              "l\u00e0",
+              "c\u1ee7a",
+              "v\u00e0",
+              "c\u00f3",
+              "\u0111\u01b0\u1ee3c",
+              "cho",
+              "v\u1ec1",
+              "t\u1eeb",
+              "\u0111\u1ebfn",
+              "t\u1ea1i",
+              "tr\u00ean",
+              "d\u01b0\u1edbi",
+              "the",
+              "is",
+              "a",
+              "an",
+              "and",
+              "or",
+              "of",
+              "to",
+              "in",
+              "on",
+              "at"
+            ],
+            "type": "stop"
+          }
+        }
+      },
+      "index": {
+        "max_result_window": 10000,
+        "number_of_replicas": 0,
+        "number_of_shards": 1,
+        "refresh_interval": "5s"
+      }
+    }
+  },
+  "web_passages": {
+    "mappings": {
+      "properties": {
+        "authority": {
+          "type": "float"
+        },
+        "canonical_url": {
+          "type": "keyword"
+        },
+        "char_end": {
+          "type": "integer"
+        },
+        "char_start": {
+          "type": "integer"
+        },
+        "contains_dates": {
+          "type": "keyword"
+        },
+        "contains_numbers": {
+          "type": "keyword"
+        },
+        "doc_id": {
+          "type": "keyword"
+        },
+        "dom_role": {
+          "type": "keyword"
+        },
+        "domain": {
+          "type": "keyword"
+        },
+        "embedding": {
+          "dimension": 1024,
+          "method": {
+            "engine": "nmslib",
+            "name": "hnsw",
+            "space_type": "cosinesimil"
+          },
+          "type": "knn_vector"
+        },
+        "heading_path": {
+          "type": "keyword"
+        },
+        "lang": {
+          "type": "keyword"
+        },
+        "passage_id": {
+          "type": "keyword"
+        },
+        "published_at": {
+          "type": "date"
+        },
+        "seq": {
+          "type": "integer"
+        },
+        "source_type": {
+          "type": "keyword"
+        },
+        "sparse_weights": {
+          "type": "rank_features"
+        },
+        "text": {
+          "analyzer": "vn_analyzer",
+          "type": "text"
+        },
+        "text_ctx": {
+          "analyzer": "vn_analyzer",
+          "type": "text"
+        },
+        "title": {
+          "analyzer": "vn_analyzer",
+          "type": "text"
+        },
+        "token_count": {
+          "type": "integer"
+        },
+        "url": {
+          "type": "keyword"
+        }
+      }
+    },
+    "settings": {
+      "analysis": {
+        "analyzer": {
+          "vn_analyzer": {
+            "filter": [
+              "lowercase",
+              "vn_stop"
+            ],
+            "tokenizer": "standard",
+            "type": "custom"
+          }
+        },
+        "filter": {
+          "vn_stop": {
+            "stopwords": [
+              "l\u00e0",
+              "c\u1ee7a",
+              "v\u00e0",
+              "c\u00f3",
+              "\u0111\u01b0\u1ee3c",
+              "cho",
+              "v\u1ec1",
+              "t\u1eeb",
+              "\u0111\u1ebfn",
+              "t\u1ea1i",
+              "tr\u00ean",
+              "d\u01b0\u1edbi",
+              "the",
+              "is",
+              "a",
+              "an",
+              "and",
+              "or",
+              "of",
+              "to",
+              "in",
+              "on",
+              "at"
+            ],
+            "type": "stop"
+          }
+        }
+      },
+      "index": {
+        "knn": true,
+        "max_result_window": 10000,
+        "number_of_replicas": 0,
+        "number_of_shards": 1,
+        "refresh_interval": "5s"
+      }
+    }
+  }
+}

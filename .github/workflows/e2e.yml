@@ -1,0 +1,131 @@
+# E2E — crawl → snapshot → extract → index → /v1/search on a real stack.
+#
+# Runs the Phase-3 data loop end-to-end on the compose services the test
+# actually needs: hub-postgres (frontier + documents), MinIO (raw
+# snapshots), OpenSearch (BM25), Qdrant (vectors), and the search-router
+# container itself. firecrawl/searxng/reranker/embedding are NOT started —
+# the router degrades around them by design, and the hybrid lane that the
+# test exercises is BM25-only in that mode (the Qdrant assert is
+# conditional on embedding_status=success).
+name: e2e
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  PYTHON_VERSION: "3.12"
+
+jobs:
+  crawl-to-search:
+    name: E2E crawl → extract → index → search
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+          submodules: false  # firecrawl/searxng trees are not needed
+
+      # The router image layers torch/transformers — the build dies mid-run
+      # on a full disk unless the preinstalled toolchains are reclaimed
+      # (~14-20 GB on ubuntu-latest).
+      - name: Free disk space
+        run: |
+          df -h /
+          sudo rm -rf /usr/share/dotnet /usr/local/lib/android /opt/ghc \
+            "$AGENT_TOOLSDIRECTORY" || true
+          docker system prune -af || true
+          df -h /
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@8d2750c68a42422c14e847fe6c8ac0403b4cbd6f # v3
+
+      # Pre-build under the exact tag compose expects
+      # (<project>-<service> = search-hub-search-router) so `compose up`
+      # below reuses it instead of rebuilding without the gha cache.
+      - name: Build search-router image
+        uses: docker/build-push-action@10e90e3645eae34f1e60eeb005ba3a3d33f178e8 # v6
+        with:
+          context: ./search-router
+          file: ./search-router/Dockerfile
+          load: true
+          tags: search-hub-search-router:latest
+          cache-from: type=gha,scope=search-router
+          cache-to: type=gha,mode=max,scope=search-router
+
+      - name: Start data services
+        run: docker compose up -d hub-postgres hub-redis minio opensearch qdrant
+
+      # The router's startup db.migrate is fire-and-forget — without an
+      # explicit gate it races Postgres boot and fails with connection
+      # refused, leaving the schema missing for the test step below.
+      - name: Wait for PostgreSQL healthy
+        run: |
+          for i in $(seq 1 30); do
+            if docker exec "$(docker ps -q -f 'name=hub-postgres')" \
+              pg_isready -U searchhub -d searchhub >/dev/null 2>&1; then
+              echo "PostgreSQL ready after ~$((i*5))s"; exit 0
+            fi
+            sleep 5
+          done
+          echo "::error::hub-postgres never became ready"
+          docker compose logs hub-postgres | tail -40; exit 1
+
+      # --no-deps: the router's depends_on would otherwise drag firecrawl/
+      # searxng/reranker/embedding-service into the job — none of which the
+      # e2e needs (the router degrades around missing providers by design).
+      - name: Start search-router
+        run: docker compose up -d --no-deps search-router
+
+      - name: Wait for router health
+        run: |
+          for i in $(seq 1 60); do
+            if curl -fsS -o /dev/null http://127.0.0.1:8888/health; then
+              echo "router healthy after ~$((i*10))s"; exit 0
+            fi
+            sleep 10
+          done
+          echo "router never became healthy"
+          docker compose logs search-router | tail -80
+          exit 1
+
+      - name: Install uv (version pinned via required-version in pyproject.toml)
+        # zizmor: ignore[cache-poisoning] image is loaded for tests only, never published
+        uses: astral-sh/setup-uv@20cfd1bf945f4377ade1205e4dbc17946fc9a30d # v10.0.1
+        with:
+          version-file: search-router/pyproject.toml
+          enable-cache: true
+          cache-dependency-glob: search-router/uv.lock
+          python-version: ${{ env.PYTHON_VERSION }}
+
+      - name: Install host test deps from lockfile
+        working-directory: search-router
+        run: uv sync --locked
+
+      # init.sql only seeds the base objects — tables like sources /
+      # crawl_frontier.next_crawl_at come from db/migrations/*.sql via the
+      # migrate runner. Compose exposes hub-postgres on loopback :5433.
+      - name: Apply hub-postgres migrations
+        working-directory: search-router
+        run: uv run python -m db.migrate --dsn postgresql://searchhub:searchhub@127.0.0.1:5433/searchhub
+
+      - name: Run crawl-to-search e2e
+        working-directory: search-router
+        run: E2E=1 uv run pytest tests/e2e/test_crawl_to_search.py -q
+        env:
+          E2E_BASE_URL: http://127.0.0.1:8888
+
+      - name: Container logs on failure
+        if: failure()
+        run: docker compose logs --tail 120 search-router hub-postgres opensearch qdrant minio
+
+      - name: Teardown
+        if: always()
+        run: docker compose down -v --remove-orphans

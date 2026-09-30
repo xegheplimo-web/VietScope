@@ -1,0 +1,14 @@
+# hadolint — Dockerfile lint policy (quality.yml → hadolint step)
+failure-threshold: warning
+
+ignored:
+  # Debian package versions churn weekly; base-image digests are the real pin.
+  - DL3008
+  - DL3018
+  # "apt-get upgrade" bans are handled by rebuilding on a fresh base image.
+  - DL3009
+
+trusted-registries:
+  - docker.io
+  - ghcr.io
+  - quay.io

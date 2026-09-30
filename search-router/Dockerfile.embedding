@@ -1,0 +1,35 @@
+FROM python:3.12-slim
+
+WORKDIR /app
+
+# Install system deps for sentence-transformers + torch
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    build-essential \
+    libcurl4-openssl-dev \
+    libssl-dev \
+    && rm -rf /var/lib/apt/lists/*
+
+# Copy the shared requirements first (cached layer)
+COPY requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt
+
+# Copy the embedding service module
+COPY services/ ./services/
+COPY config.py .
+
+# Environment for the service
+ENV EMBEDDING_MODEL=BAAI/bge-m3 \
+    EMBEDDING_DEVICE=cpu \
+    EMBEDDING_BATCH_SIZE=32 \
+    EMBEDDING_PORT=8890 \
+    HOST=0.0.0.0 \
+    PORT=8890
+
+EXPOSE 8890
+
+# Health check endpoint
+HEALTHCHECK --interval=30s --timeout=15s --retries=5 --start-period=60s \
+    CMD python3 -c "import httpx; r=httpx.get('http://localhost:8892/health', timeout=10); exit(0 if r.status_code==200 else 1)"
+
+# Run the embedding service directly.
+CMD ["python", "-m", "services.bge_embedding"]

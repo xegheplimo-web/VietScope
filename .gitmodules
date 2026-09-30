@@ -1,0 +1,6 @@
+[submodule "firecrawl"]
+	path = firecrawl
+	url = https://github.com/firecrawl/firecrawl.git
+[submodule "searxng"]
+	path = searxng
+	url = https://github.com/searxng/searxng.git

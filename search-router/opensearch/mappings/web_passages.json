@@ -1,0 +1,60 @@
+{
+  "settings": {
+    "index": {
+      "number_of_shards": 1,
+      "number_of_replicas": 0,
+      "refresh_interval": "5s",
+      "max_result_window": 10000,
+      "knn": true
+    },
+    "analysis": {
+      "analyzer": {
+        "vn_analyzer": {
+          "type": "custom",
+          "tokenizer": "standard",
+          "filter": ["lowercase", "vn_stop"]
+        }
+      },
+      "filter": {
+        "vn_stop": {
+          "type": "stop",
+          "stopwords": ["là", "của", "và", "có", "được", "cho", "về", "từ", "đến", "tại", "trên", "dưới", "the", "is", "a", "an", "and", "or", "of", "to", "in", "on", "at"]
+        }
+      }
+    }
+  },
+  "mappings": {
+    "properties": {
+      "passage_id": { "type": "keyword" },
+      "doc_id": { "type": "keyword" },
+      "seq": { "type": "integer" },
+      "url": { "type": "keyword" },
+      "canonical_url": { "type": "keyword" },
+      "title": { "type": "text", "analyzer": "vn_analyzer" },
+      "text": { "type": "text", "analyzer": "vn_analyzer" },
+      "text_ctx": { "type": "text", "analyzer": "vn_analyzer" },
+      "embedding": {
+        "type": "knn_vector",
+        "dimension": 1024,
+        "method": {
+          "name": "hnsw",
+          "space_type": "cosinesimil",
+          "engine": "nmslib"
+        }
+      },
+      "sparse_weights": { "type": "rank_features" },
+      "heading_path": { "type": "keyword" },
+      "char_start": { "type": "integer" },
+      "char_end": { "type": "integer" },
+      "token_count": { "type": "integer" },
+      "dom_role": { "type": "keyword" },
+      "contains_numbers": { "type": "keyword" },
+      "contains_dates": { "type": "keyword" },
+      "domain": { "type": "keyword" },
+      "source_type": { "type": "keyword" },
+      "authority": { "type": "float" },
+      "published_at": { "type": "date" },
+      "lang": { "type": "keyword" }
+    }
+  }
+}

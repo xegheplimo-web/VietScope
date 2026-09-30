@@ -1,0 +1,122 @@
+{
+  "$defs": {
+    "SourceAuthority": {
+      "enum": [
+        "official",
+        "government",
+        "research_paper",
+        "major_publication",
+        "vendor_website",
+        "specialist_blog",
+        "forum",
+        "reddit",
+        "unknown_seo_site"
+      ],
+      "title": "SourceAuthority",
+      "type": "string"
+    }
+  },
+  "properties": {
+    "authority_score": {
+      "default": 0.0,
+      "description": "Authority score from 0.0 to 1.0",
+      "title": "Authority Score",
+      "type": "number"
+    },
+    "category": {
+      "default": "",
+      "description": "Result category",
+      "title": "Category",
+      "type": "string"
+    },
+    "freshness_score": {
+      "default": 0.0,
+      "description": "Freshness score from 0.0 to 1.0",
+      "title": "Freshness Score",
+      "type": "number"
+    },
+    "image_url": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "description": "Thumbnail image URL",
+      "title": "Image Url"
+    },
+    "language": {
+      "default": "en",
+      "description": "Language code",
+      "title": "Language",
+      "type": "string"
+    },
+    "metadata": {
+      "additionalProperties": true,
+      "description": "Additional metadata",
+      "title": "Metadata",
+      "type": "object"
+    },
+    "published_date": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "description": "Publication date",
+      "title": "Published Date"
+    },
+    "result_id": {
+      "description": "Unique result identifier",
+      "title": "Result Id",
+      "type": "string"
+    },
+    "score": {
+      "default": 0.0,
+      "description": "Composite relevance score",
+      "title": "Score",
+      "type": "number"
+    },
+    "snippet": {
+      "default": "",
+      "description": "Short description/preview",
+      "title": "Snippet",
+      "type": "string"
+    },
+    "source": {
+      "description": "Provider name (searxng, github, arxiv, etc.)",
+      "title": "Source",
+      "type": "string"
+    },
+    "source_type": {
+      "$ref": "#/$defs/SourceAuthority",
+      "default": "unknown_seo_site",
+      "description": "Source authority type"
+    },
+    "title": {
+      "default": "",
+      "description": "Result title",
+      "title": "Title",
+      "type": "string"
+    },
+    "url": {
+      "description": "Result URL",
+      "title": "Url",
+      "type": "string"
+    }
+  },
+  "required": [
+    "result_id",
+    "url",
+    "source"
+  ],
+  "title": "SearchResult",
+  "type": "object"
+}

@@ -1,0 +1,10 @@
+{"query": "tin tức mới nhất hôm nay", "expected_urls": ["vnexpress.net", "dantri.com.vn", "tuoitre.vn", "vietnamnet.vn"], "category": "current_events", "region": "vn"}
+{"query": "thời tiết hôm nay tại Hà Nội", "expected_urls": ["nchmf.gov.vn", "accuweather.com", "weather.com"], "category": "current_events", "region": "vn"}
+{"query": "giá vàng hôm nay bao nhiêu một chỉ", "expected_urls": ["cafef.vn", "sggp.org.vn", "vnexpress.net", "doji.vn"], "category": "current_events", "region": "vn"}
+{"query": "kết quả bóng đá ngoại hạng Anh đêm qua", "expected_urls": ["thethao247.vn", "bongdaplus.vn", "bbc.com"], "category": "current_events", "region": "vn"}
+{"query": "dự báo thời tiết bão mới nhất biển Đông", "expected_urls": ["nchmf.gov.vn", "vnexpress.net", "vtv.vn"], "category": "current_events", "region": "vn"}
+{"query": "điểm chuẩn đại học 2026", "expected_urls": ["thanhnien.vn", "tuoitre.vn", "vnexpress.net", "giaoduc.net.vn"], "category": "current_events", "region": "vn"}
+{"query": "giá bất động sản Hà Nội mới nhất", "expected_urls": ["cafef.vn", "batdongsan.com.vn", "cbrevietnam.com"], "category": "current_events", "region": "vn"}
+{"query": "tin công nghệ mới nhất tuần này", "expected_urls": ["genk.vn", "vnexpress.net", "techcrunch.com", "theverge.com"], "category": "current_events", "region": "vn"}
+{"query": "giá heo hơi hôm nay miền Bắc", "expected_urls": ["nongnghiep.vn", "baomoi.com", "cafef.vn"], "category": "current_events", "region": "vn"}
+{"query": "tin nóng trong nước trong ngày", "expected_urls": ["dantri.com.vn", "tuoitre.vn", "vnexpress.net"], "category": "current_events", "region": "vn"}

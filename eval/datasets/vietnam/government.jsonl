@@ -1,0 +1,12 @@
+{"query": "thủ tục đăng ký khai sinh trực tuyến trên cổng dịch vụ công", "expected_urls": ["dichvucong.gov.vn", "chinhphu.vn", "moj.gov.vn"], "category": "vn_government", "region": "vn", "expected_facts": ["khai sinh"]}
+{"query": "thủ tục làm hộ chiếu online 2026", "expected_urls": ["xuatnhapcanh.gov.vn", "dichvucong.gov.vn", "chinhphu.vn"], "category": "vn_government", "region": "vn", "expected_facts": ["hộ chiếu"]}
+{"query": "đăng ký kinh doanh hộ cá thể qua mạng", "expected_urls": ["dangkykinhdoanh.gov.vn", "dichvucong.gov.vn", "mpi.gov.vn"], "category": "vn_government", "region": "vn", "expected_facts": ["đăng ký kinh doanh"]}
+{"query": "tra cứu thông tin quy hoạch đất đai quận 1 TP.HCM", "expected_urls": ["tphcm.gov.vn", "donre.gov.vn", "chinhphu.vn"], "category": "vn_government", "region": "vn"}
+{"query": "lịch nghỉ lễ 30/4 1/5 năm 2026 theo quyết định", "expected_urls": ["chinhphu.vn", "molisa.gov.vn", "vanban.chinhphu.vn"], "category": "vn_government", "region": "vn"}
+{"query": "cấp đổi giấy phép lái xe trực tuyến thủ tục", "expected_urls": ["dichvucong.gov.vn", "mt.gov.vn", "chinhphu.vn"], "category": "vn_government", "region": "vn"}
+{"query": "đăng ký tạm trú tạm vắng online cho người nước ngoài", "expected_urls": ["xuatnhapcanh.gov.vn", "dichvucong.gov.vn"], "category": "vn_government", "region": "vn"}
+{"query": "bảo hiểm y tế hộ gia đình mua ở đâu mức đóng", "expected_urls": ["baohiemxahoi.gov.vn", "chinhphu.vn", "moh.gov.vn"], "category": "vn_government", "region": "vn"}
+{"query": "danh sách trường công lập quận 3 TP.HCM tuyển sinh", "expected_urls": ["tphcm.gov.vn", "moet.gov.vn", "edu.hcmc.edu.vn"], "category": "vn_government", "region": "vn"}
+{"query": "hồ sơ đăng ký thường trú tại TP.HCM cần giấy tờ gì", "expected_urls": ["dichvucong.gov.vn", "tphcm.gov.vn", "chinhphu.vn"], "category": "vn_government", "region": "vn"}
+{"query": "chính sách hỗ trợ người lao động mất việc mới nhất", "expected_urls": ["molisa.gov.vn", "chinhphu.vn", "vanban.chinhphu.vn"], "category": "vn_government", "region": "vn"}
+{"query": "đăng ký biển số xe máy định danh thủ tục", "expected_urls": ["dichvucong.gov.vn", "csgt.vn", "chinhphu.vn"], "category": "vn_government", "region": "vn"}

@@ -1,0 +1,55 @@
+# Devin Cloud — Declarative Repo Setup for xegheplimo-web/search-hub
+# Blueprint format: https://docs.devin.ai/onboard-devin/environment/blueprint-reference
+#
+# Goal: a session on this repo lands with Python 3.12 + uv 0.12.18 (pinned by
+# search-router/pyproject.toml [tool.uv] required-version), deps synced from
+# uv.lock, submodules fetched, and a .env seeded from .env.example — so lint,
+# the 1200+ unit-test suite, and `docker compose up -d` all work immediately.
+
+initialize:
+  # One-time toolchain + dependency install (baked into the snapshot).
+  - run: |
+      set -eux
+      curl -LsSf https://astral.sh/uv/0.12.18/install.sh | sh
+      $HOME/.local/bin/uv python install 3.12
+      git submodule update --init --recursive
+      cp -n .env.example .env
+      cd search-router
+      $HOME/.local/bin/uv sync --locked
+
+maintenance:
+  # Fast incremental refresh on every session start.
+  - run: |
+      set -eux
+      export PATH="$HOME/.local/bin:$PATH"
+      git submodule update --init --recursive
+      cd search-router
+      uv sync --locked
+      cp -n .env.example .env
+
+knowledge:
+  - name: lint
+    contents: |
+      cd search-router
+      uv run ruff check .            # ruff 0.16.7 via dev group
+      uv run ruff format --check .
+      uv lock --check                # lockfile freshness gate
+      # CI also runs: actionlint + zizmor on .github/workflows,
+      # hadolint on search-router/Dockerfile, gitleaks, osv-scanner.
+  - name: test
+    contents: |
+      cd search-router
+      env -u PYTHONPATH uv run pytest tests/ -q
+      # 1200+ unit tests, no live stack required.
+      # E2E needs the compose stack + API key: pytest tests/e2e/ -q
+      # (see scripts/e2e_run.sh)
+  - name: startup
+    contents: |
+      # Full stack = 16 services, needs ~16GB RAM. Starts degraded-safe:
+      # missing optional services surface as status fields, not crashes.
+      docker compose up -d
+      curl http://localhost:8888/v1/health
+      # host-side MCP adapter: python search-router/adapters/mcp_server.py -> :8901
+      # API keys: cd search-router && python manage_keys.py create ...
+      # Optional org secrets (if configured): LLM_API_KEY, GITHUB_TOKEN,
+      # HUB_ADMIN_KEY — append them to .env before starting the stack.

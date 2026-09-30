@@ -1,0 +1,12 @@
+{"query": "giá vàng SJC hôm nay mua bán bao nhiêu", "expected_urls": ["sjc.com.vn", "webgia.com", "giavang.org", "doji.vn", "cafef.vn"], "category": "vn_market", "region": "vn", "time_sensitive": true, "expected_facts": ["SJC"]}
+{"query": "tỷ giá USD/VND hôm nay ngân hàng Vietcombank", "expected_urls": ["vietcombank.com.vn", "sbv.gov.vn", "cafef.vn", "eximbank.com.vn"], "category": "vn_market", "region": "vn", "time_sensitive": true, "expected_facts": ["USD", "VND"]}
+{"query": "VN-Index hôm nay tăng giảm bao nhiêu điểm", "expected_urls": ["vndirect.com.vn", "cafef.vn", "vietstock.vn", "hsx.vn"], "category": "vn_market", "region": "vn", "time_sensitive": true, "expected_facts": ["VN-Index"]}
+{"query": "giá cổ phiếu VIC Vingroup phiên gần nhất", "expected_urls": ["vndirect.com.vn", "cafef.vn", "vietstock.vn", "hsx.vn"], "category": "vn_market", "region": "vn", "time_sensitive": true, "expected_facts": ["VIC", "Vingroup"]}
+{"query": "giá xăng dầu Petrolimex hôm nay điều chỉnh", "expected_urls": ["petrolimex.com.vn", "moit.gov.vn", "cafef.vn", "vnexpress.net"], "category": "vn_market", "region": "vn", "time_sensitive": true}
+{"query": "giá gạo xuất khẩu Việt Nam tuần này", "expected_urls": ["vfa.org.vn", "moit.gov.vn", "cafef.vn", "nongnghiep.vn"], "category": "vn_market", "region": "vn"}
+{"query": "tỷ giá euro yen nhân dân tệ hôm nay", "expected_urls": ["sbv.gov.vn", "cafef.vn", "vietcombank.com.vn", "bidv.com.vn"], "category": "vn_market", "region": "vn", "time_sensitive": true}
+{"query": "giá cà phê trong nước hôm nay đồng bằng", "expected_urls": ["vicofa.com.vn", "cafef.vn", "giacaphe.com", "nongnghiep.vn"], "category": "vn_market", "region": "vn", "time_sensitive": true}
+{"query": "lãi suất ngân hàng nào cao nhất hiện nay 2026", "expected_urls": ["sbv.gov.vn", "cafef.vn", "vnexpress.net", "webgia.com"], "category": "vn_market", "region": "vn"}
+{"query": "giá heo hơi hôm nay cả nước", "expected_urls": ["giapheo.com", "moit.gov.vn", "nongnghiep.vn", "cafef.vn"], "category": "vn_market", "region": "vn", "time_sensitive": true}
+{"query": "Bitcoin hôm nay bao nhiêu USD", "expected_urls": ["coinmarketcap.com", "coindesk.com", "cafef.vn"], "category": "vn_market", "region": "global", "time_sensitive": true}
+{"query": "giá bất động sản TP.HCM quý này thị trường", "expected_urls": ["batdongsan.com.vn", "vnexpress.net", "cafef.vn", "dathongminh.com"], "category": "vn_market", "region": "vn"}

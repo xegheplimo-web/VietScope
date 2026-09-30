@@ -1,0 +1,72 @@
+title = "Search-Hub gitleaks config"
+
+[extend]
+useDefault = true
+
+# Schema note (verified against gitleaks v8.24.3): the GLOBAL allowlist is
+# the singular `[allowlist]` table — `[[allowlists]]` at top level parses
+# but is silently ignored (this file's allowlists were dead config until
+# R5). Global semantics are OR: any matching path/regex suppresses. For
+# AND-scoped suppression (path AND regex) use `[[rules.allowlists]]` on a
+# stub rule whose `id` matches a default rule — the allowlist merges onto
+# it without overriding the regex.
+
+# Global path exclusions — vendored submodule checkouts (upstream code; CI
+# checks out with submodules:false) and local build artifacts. `.env` is
+# gitignored/untracked — gitleaks cannot distinguish tracked vs untracked,
+# so we exclude exactly `.env` files (NOT a glob): tracked variants like
+# `.env.example` keep being scanned in case a real secret lands in them.
+# All path regexes use the `(^|/)` prefix so they match both repo-relative
+# paths (git scan) and absolute paths (dir scan).
+[allowlist]
+description = "submodule checkouts + local build artifacts + untracked .env"
+paths = [
+  '''(^|/)firecrawl/''',
+  '''(^|/)searxng/''',
+  '''\.next/''',
+  '''node_modules/''',
+  '''(^|/)\.venv/''',
+  '''(^|/)\.env$''',
+]
+
+# Scoped suppressions for the generic-api-key rule (condition=AND requires
+# BOTH the regex and the path to match). The stub rule adds allowlists only.
+
+# Fake bearer keys in MCP auth tests (test_p11_mcp.py monkeypatches
+# SEARCH_HUB_ROUTER_KEY / HUB_ADMIN_KEY with dsa_live_* / dsa_test_*
+# fixtures). Scoped: secret must carry the fake prefix AND live under tests/.
+[[rules]]
+id = "generic-api-key"
+description = "generic api-key rule + Search-Hub scoped allowlists"
+
+[[rules.allowlists]]
+condition = "AND"
+description = "fake bearer keys in search-router tests"
+regexTarget = "secret"
+regexes = ['''dsa_(live|test)_[0-9A-Za-z_-]+''']
+paths = ['''(^|/)search-router/tests/''']
+
+# Local-dev LLM key documented in spec/prompt docs — the endpoint is
+# host.docker.internal:18434 (non-public), so exposure risk is low. The key
+# value itself is NOT stored here (that would be a second copy of the
+# secret); the allowlist matches the "API Key:" line context in those files
+# instead. Still prefer scrubbing the files + rotating the key long-term.
+[[rules.allowlists]]
+condition = "AND"
+description = "local LLM dev key line in spec/prompt docs (non-public endpoint)"
+regexTarget = "line"
+regexes = ['''API [Kk]ey\s*:''']
+paths = ['''(prompt_devin_[0-9]+\.txt|spec_searchhub_[0-9]+\.md)$''']
+
+# Doc placeholders like `Bearer dsa_live_...` in docs/api/* — never real
+# keys (literal `...` suffix); scoped to docs/ AND the fake-key shape.
+[[rules]]
+id = "curl-auth-header"
+description = "curl auth-header rule + docs placeholder allowlist"
+
+[[rules.allowlists]]
+condition = "AND"
+description = "dsa_live_/dsa_test_ ellipsis placeholders in docs"
+regexTarget = "secret"
+regexes = ['''dsa_(live|test)_\.{2,}''']
+paths = ['''(^|/)docs/''']

@@ -1,0 +1,8 @@
+{"query": "phân tích tác động của Nghị định hóa đơn điện tử lên hộ kinh doanh nhỏ", "expected_urls": ["vanban.chinhphu.vn", "vbpl.vn", "thuvienphapluat.vn", "vnexpress.net", "cafef.vn"], "category": "vn_research", "region": "vn", "expected_facts": ["hóa đơn điện tử"]}
+{"query": "so sánh chính sách thu hút FDI Việt Nam với Thái Lan Indonesia", "expected_urls": ["mpi.gov.vn", "vnexpress.net", "worldbank.org", "cafef.vn"], "category": "vn_research", "region": "vn", "expected_facts": ["FDI"]}
+{"query": "xu hướng thị trường bất động sản TP.HCM 2026 và rủi ro", "expected_urls": ["batdongsan.com.vn", "vnexpress.net", "cafef.vn", "dkbd.hcm.gov.vn"], "category": "vn_research", "region": "vn", "expected_facts": ["bất động sản"]}
+{"query": "tổng quan ngành thép Việt Nam: sản xuất, xuất khẩu, cạnh tranh", "expected_urls": ["hoaphat.com.vn", "vsa.com.vn", "moit.gov.vn", "cafef.vn"], "category": "vn_research", "region": "vn"}
+{"query": "tác động sáp nhập tỉnh thành 2025 đến hành chính địa phương", "expected_urls": ["chinhphu.vn", "vanban.chinhphu.vn", "vnexpress.net", "nhandan.vn"], "category": "vn_research", "region": "vn"}
+{"query": "chiến lược chuyển đổi năng lượng xanh của Việt Nam PDP8", "expected_urls": ["moit.gov.vn", "evn.com.vn", "chinhphu.vn", "vnexpress.net"], "category": "vn_research", "region": "vn"}
+{"query": "vị trí của Việt Nam trong chuỗi cung ứng bán dẫn toàn cầu", "expected_urls": ["mic.gov.vn", "vnexpress.net", "reuters.com", "cafef.vn"], "category": "vn_research", "region": "vn"}
+{"query": "đánh giá hiệu quả chính sách giảm thuế phí trước bạ ô tô điện", "expected_urls": ["mof.gov.vn", "vanban.chinhphu.vn", "vinfast.vn", "cafef.vn"], "category": "vn_research", "region": "vn"}

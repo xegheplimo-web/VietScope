@@ -1,0 +1,14 @@
+{"query": "nhà thuốc gần bệnh viện Chợ Rẫy TP.HCM", "expected_urls": ["nhathuoclongchau.com.vn", "pharmacity.vn", "openstreetmap.org"], "category": "vn_places", "region": "vn", "expected_facts": ["nhà thuốc"]}
+{"query": "quán phở ngon quận 1 TP.HCM địa chỉ", "expected_urls": ["tuoitre.vn", "vnexpress.net", "toplist.vn", "tripadvisor.com"], "category": "vn_places", "region": "vn"}
+{"query": "ATM Vietcombank gần chợ Bến Thành", "expected_urls": ["vietcombank.com.vn", "openstreetmap.org"], "category": "vn_places", "region": "vn", "expected_facts": ["ATM", "Vietcombank"]}
+{"query": "khách sạn gần hồ Hoàn Kiếm Hà Nội", "expected_urls": ["booking.com", "tripadvisor.com", "agoda.com", "openstreetmap.org"], "category": "vn_places", "region": "vn"}
+{"query": "bệnh viện đa khoa tại Đà Nẵng địa chỉ", "expected_urls": ["moh.gov.vn", "tuoitre.vn", "openstreetmap.org"], "category": "vn_places", "region": "vn"}
+{"query": "cây xăng gần sân bay Nội Bài", "expected_urls": ["openstreetmap.org", "petrolimex.com.vn"], "category": "vn_places", "region": "vn"}
+{"query": "quán cà phê view đẹp Đà Lạt", "expected_urls": ["tripadvisor.com", "toplist.vn", "vnexpress.net"], "category": "vn_places", "region": "vn"}
+{"query": "chợ đầu mối lớn nhất Hà Nội địa chỉ", "expected_urls": ["tuoitre.vn", "vnexpress.net", "hanoimoi.com.vn"], "category": "vn_places", "region": "vn"}
+{"query": "siêu thị gần trường đại học Bách Khoa TP.HCM", "expected_urls": ["openstreetmap.org", "thegioididong.com", "aeonmall-vietnam.com"], "category": "vn_places", "region": "vn"}
+{"query": "trạm y tế phường 1 quận 3 TP.HCM", "expected_urls": ["tphcm.gov.vn", "openstreetmap.org"], "category": "vn_places", "region": "vn"}
+{"query": "nhà sách lớn ở Hà Nội đường Láng", "expected_urls": ["nhasachphuongnam.com", "vnexpress.net", "openstreetmap.org"], "category": "vn_places", "region": "vn"}
+{"query": "bãi biển đẹp gần Nha Trang cách trung tâm", "expected_urls": ["tripadvisor.com", "vnexpress.net", "toplist.vn"], "category": "vn_places", "region": "vn"}
+{"query": "tiệm cắt tóc nam quận Tân Bình đánh giá tốt", "expected_urls": ["toplist.vn", "openstreetmap.org"], "category": "vn_places", "region": "vn"}
+{"query": "quán ăn đêm Hà Nội khu phố cổ", "expected_urls": ["tuoitre.vn", "tripadvisor.com", "toplist.vn"], "category": "vn_places", "region": "vn"}

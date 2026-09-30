@@ -1,0 +1,22 @@
+# Build context hygiene — keep the image and the context small.
+.pytest_cache
+.ruff_cache
+__pycache__
+*.pyc
+*.pyo
+.venv
+venv
+.env
+.env.*
+
+# Tests/docs/eval run on the host or in CI — never inside the image.
+tests/
+eval/
+docs/
+scripts/
+*.md
+
+# Generated artifacts (regenerated per build)
+coverage*.json
+sbom.cdx.json
+data/

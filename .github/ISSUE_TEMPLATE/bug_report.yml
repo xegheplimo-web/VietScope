@@ -1,0 +1,51 @@
+name: Bug Report
+description: Something is broken in VietScope / Search-Hub
+title: "[bug]: "
+labels: ["bug", "triage"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for the report. For security issues use **Security → Advisories**
+        instead (see SECURITY.md).
+  - type: dropdown
+    id: component
+    attributes:
+      label: Component
+      options:
+        - search-router (API :8888)
+        - mcp-server (:8901)
+        - searxng
+        - firecrawl
+        - docker-compose / infra
+        - ci / quality pipeline
+        - docs
+    validations:
+      required: true
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: What happened?
+      description: Expected vs actual behavior. Paste the exact error.
+    validations:
+      required: true
+  - type: textarea
+    id: repro
+    attributes:
+      label: Reproduction
+      description: Minimal curl / pytest / compose steps
+      placeholder: |
+        curl -X POST http://localhost:8888/search -d '{"query":"..."}'
+    validations:
+      required: true
+  - type: textarea
+    id: logs
+    attributes:
+      label: Logs
+      description: docker compose logs / pytest output (trim to relevant lines)
+      render: shell
+  - type: input
+    id: commit
+    attributes:
+      label: Commit / version
+      placeholder: git rev-parse HEAD

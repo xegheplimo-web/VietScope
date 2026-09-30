@@ -1,0 +1,10 @@
+{"query": "tin tức nóng nhất hôm nay Việt Nam", "expected_urls": ["vnexpress.net", "tuoitre.vn", "thanhnien.vn", "dantri.com.vn"], "category": "vn_news", "region": "vn", "time_sensitive": true}
+{"query": "giá xăng dầu mới nhất điều chỉnh chiều nay", "expected_urls": ["vnexpress.net", "cafef.vn", "petrolimex.com.vn", "thanhnien.vn"], "category": "vn_news", "region": "vn", "time_sensitive": true, "expected_facts": ["xăng"]}
+{"query": "bão mới nhất vào biển Đông dự báo đường đi", "expected_urls": ["nchmf.gov.vn", "vnexpress.net", "vtv.vn", "nhandan.vn"], "category": "vn_news", "region": "vn", "time_sensitive": true, "expected_facts": ["bão"]}
+{"query": "tình hình lũ lụt miền Trung mới nhất", "expected_urls": ["vnexpress.net", "tuoitre.vn", "vtv.vn", "nhandan.vn"], "category": "vn_news", "region": "vn", "time_sensitive": true}
+{"query": "thị trường chứng khoán hôm nay VN-Index", "expected_urls": ["cafef.vn", "vndirect.com.vn", "vnexpress.net", "vietstock.vn"], "category": "vn_news", "region": "vn", "time_sensitive": true}
+{"query": "kết quả bóng đá Việt Nam vừa đấu xong", "expected_urls": ["thethao247.vn", "vnexpress.net", "bongdaplus.vn", "thanhnien.vn"], "category": "vn_news", "region": "vn", "time_sensitive": true}
+{"query": "giá thép xây dựng hôm nay", "expected_urls": ["baotintuc.vn", "satthepxaydung.com", "cafef.vn"], "category": "vn_news", "region": "vn"}
+{"query": "tuyển sinh đại học 2026 điểm chuẩn công bố", "expected_urls": ["moet.gov.vn", "vnexpress.net", "tuoitre.vn", "thanhnien.vn"], "category": "vn_news", "region": "vn", "time_sensitive": true}
+{"query": "các tuyến metro Hà Nội TP.HCM tiến độ mới nhất", "expected_urls": ["vnexpress.net", "tuoitre.vn", "hanoimoi.com.vn", "sggp.org.vn"], "category": "vn_news", "region": "vn"}
+{"query": "tỷ giá đô la hôm nay ngân hàng", "expected_urls": ["sbv.gov.vn", "cafef.vn", "vietcombank.com.vn", "vnexpress.net"], "category": "vn_news", "region": "vn", "time_sensitive": true}

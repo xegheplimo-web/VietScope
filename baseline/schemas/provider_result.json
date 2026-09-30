@@ -1,0 +1,169 @@
+{
+  "$defs": {
+    "RetrievalObservation": {
+      "description": "A single retrieval provenance record for a normalized search result.",
+      "properties": {
+        "engine": {
+          "default": "",
+          "title": "Engine",
+          "type": "string"
+        },
+        "provider": {
+          "default": "",
+          "title": "Provider",
+          "type": "string"
+        },
+        "rank": {
+          "default": 0,
+          "title": "Rank",
+          "type": "integer"
+        },
+        "retrieved_at": {
+          "title": "Retrieved At",
+          "type": "string"
+        }
+      },
+      "title": "RetrievalObservation",
+      "type": "object"
+    }
+  },
+  "description": "Common search-result schema every provider returns.\n\nMirrors the Phase-2 contract: ``url``/``title``/``snippet`` identify the\nhit, ``source``/``source_type`` say who found it and on which lane, and\nthe rest is uniform metadata. Phase-1 provenance fields stay first-class\nso dedup/fingerprint pipelines keep working.",
+  "properties": {
+    "canonical_url": {
+      "default": "",
+      "title": "Canonical Url",
+      "type": "string"
+    },
+    "country": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Country"
+    },
+    "crawled_at": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Crawled At"
+    },
+    "engine": {
+      "default": "",
+      "title": "Engine",
+      "type": "string"
+    },
+    "fingerprint": {
+      "default": "",
+      "title": "Fingerprint",
+      "type": "string"
+    },
+    "language": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Language"
+    },
+    "metadata": {
+      "additionalProperties": true,
+      "title": "Metadata",
+      "type": "object"
+    },
+    "published_at": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Published At"
+    },
+    "retrieval_observations": {
+      "default": [],
+      "items": {
+        "$ref": "#/$defs/RetrievalObservation"
+      },
+      "title": "Retrieval Observations",
+      "type": "array"
+    },
+    "score": {
+      "anyOf": [
+        {
+          "type": "number"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": 0.0,
+      "title": "Score"
+    },
+    "snippet": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Snippet"
+    },
+    "source": {
+      "default": "",
+      "title": "Source",
+      "type": "string"
+    },
+    "source_type": {
+      "default": "",
+      "title": "Source Type",
+      "type": "string"
+    },
+    "thumbnail": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": "",
+      "title": "Thumbnail"
+    },
+    "title": {
+      "default": "",
+      "title": "Title",
+      "type": "string"
+    },
+    "url": {
+      "title": "Url",
+      "type": "string"
+    }
+  },
+  "required": [
+    "url"
+  ],
+  "title": "ProviderResult",
+  "type": "object"
+}

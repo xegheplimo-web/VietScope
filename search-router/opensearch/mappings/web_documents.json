@@ -1,0 +1,49 @@
+{
+  "settings": {
+    "index": {
+      "number_of_shards": 1,
+      "number_of_replicas": 0,
+      "refresh_interval": "5s",
+      "max_result_window": 10000
+    },
+    "analysis": {
+      "analyzer": {
+        "vn_analyzer": {
+          "type": "custom",
+          "tokenizer": "standard",
+          "filter": ["lowercase", "vn_stop"]
+        }
+      },
+      "filter": {
+        "vn_stop": {
+          "type": "stop",
+          "stopwords": ["là", "của", "và", "có", "được", "cho", "về", "từ", "đến", "tại", "trên", "dưới", "the", "is", "a", "an", "and", "or", "of", "to", "in", "on", "at"]
+        }
+      }
+    }
+  },
+  "mappings": {
+    "properties": {
+      "doc_id": { "type": "keyword" },
+      "url": { "type": "keyword" },
+      "canonical_url": { "type": "keyword" },
+      "domain": { "type": "keyword" },
+      "title": { "type": "text", "analyzer": "vn_analyzer" },
+      "description": { "type": "text", "analyzer": "vn_analyzer" },
+      "author": { "type": "keyword" },
+      "lang": { "type": "keyword" },
+      "published_at": { "type": "date" },
+      "published_confidence": { "type": "float" },
+      "crawled_at": { "type": "date" },
+      "source_type": { "type": "keyword" },
+      "content_hash": { "type": "keyword" },
+      "simhash": { "type": "keyword" },
+      "http_status": { "type": "integer" },
+      "render_mode": { "type": "keyword" },
+      "paywalled": { "type": "boolean" },
+      "word_count": { "type": "integer" },
+      "quality_score": { "type": "float" },
+      "ai_generated_score": { "type": "float" }
+    }
+  }
+}

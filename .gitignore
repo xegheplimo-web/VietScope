@@ -1,0 +1,32 @@
+.env
+__pycache__/
+*.pyc
+node_modules/
+.venv/
+*.log
+.pytest_cache/
+.ruff_cache/
+
+# Agent/tooling dirs — never part of the canonical repo
+.devin/
+.hermes/
+.serena/
+.hermes.md
+
+.env.bak-*
+
+# Machine-local compose overrides (GPU, ports, mem) — auto-applied, never committed
+docker-compose.override.yml
+eval/reports/*
+!eval/reports/.gitkeep
+search-router/data/search_metrics.db*
+.osm-data/
+data/
+
+# Generated artifacts — CI regenerates these, never commit
+coverage.json
+coverage.xml
+diff-cover.md
+sbom.cdx.json
+image-sbom*.json
+pyright-out.json

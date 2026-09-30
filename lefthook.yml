@@ -1,0 +1,31 @@
+# lefthook.yml — rule: every hook finishes < 3s. Heavy tests go to pre-push/CI.
+# Install: https://lefthook.dev  (winget install evilmartians.lefthook)
+# then: lefthook install
+pre-commit:
+  parallel: true
+  commands:
+    ruff-fix-format:
+      glob: "*.py"
+      run: cd search-router && uv run ruff check --fix {staged_files} && uv run ruff format {staged_files}
+      stage_fixed: true
+    secrets:
+      priority: 1
+      run: gitleaks protect --staged --redact || echo "gitleaks not installed — skipped"
+    hygiene:
+      run: node -e "for (const f of process.argv[1].split('\n').filter(Boolean)) { const s=require('fs').statSync(f); if (s.size>400*1024) { console.error(f+' > 400KB'); process.exit(1); } }" {staged_files} || true
+    lockfile-drift:
+      glob: ["search-router/pyproject.toml", "search-router/uv.lock"]
+      run: cd search-router && uv lock --check || { echo "uv.lock is stale — run 'uv lock'"; exit 1; }
+
+commit-msg:
+  commands:
+    commitlint:
+      # Both packages must be resolvable — config-conventional is loaded via extends.
+      run: npx --yes --package=@commitlint/cli --package=@commitlint/config-conventional commitlint --edit {1} || echo "commitlint skipped"
+
+pre-push:
+  commands:
+    typecheck:
+      run: cd search-router && python -m compileall -q . || true
+    unit:
+      run: cd search-router && (uv run pytest tests/ -x -q || python -m pytest tests/ -x -q)

@@ -1,0 +1,12 @@
+{"query": "giá iPhone 17 Pro Max chính hãng tại Việt Nam", "expected_urls": ["apple.com", "thegioididong.com", "fptshop.com.vn", "cellphones.com.vn", "dienmayxanh.com"], "category": "vn_product", "region": "vn", "expected_facts": ["iPhone 17"]}
+{"query": "so sánh Samsung S26 Ultra và iPhone 17 Pro", "expected_urls": ["thegioididong.com", "genk.vn", "tintuc.vn", "gsmarena.com"], "category": "vn_product", "region": "vn", "expected_facts": ["S26 Ultra", "iPhone 17"]}
+{"query": "VinFast VF8 giá lăn bánh 2026 đánh giá", "expected_urls": ["vinfast.vn", "otofun.net", "xehay.vn", "autodaily.vn"], "category": "vn_product", "region": "vn", "expected_facts": ["VF8"]}
+{"query": "máy lạnh Daikin 1.5HP giá tốt ở đâu", "expected_urls": ["dienmayxanh.com", "thegioididong.com", "nguyenkim.com", "mediamart.vn"], "category": "vn_product", "region": "vn"}
+{"query": "AirPods Pro 3 giá chính hãng Việt Nam", "expected_urls": ["apple.com", "thegioididong.com", "fptshop.com.vn", "cellphones.com.vn"], "category": "vn_product", "region": "vn"}
+{"query": "laptop gaming Asus ROG giá dưới 30 triệu tốt nhất", "expected_urls": ["fptshop.com.vn", "thegioididong.com", "cellphones.com.vn", "gearvn.com"], "category": "vn_product", "region": "vn"}
+{"query": "Honda SH Mode 2026 giá đại lý", "expected_urls": ["honda.com.vn", "xehay.vn", "autodaily.vn", "webike.vn"], "category": "vn_product", "region": "vn"}
+{"query": "tivi Samsung 55 inch giá rẻ nhất mua ở đâu", "expected_urls": ["dienmayxanh.com", "thegioididong.com", "nguyenkim.com", "tiki.vn", "shopee.vn"], "category": "vn_product", "region": "vn"}
+{"query": "sữa rửa mặt CeraVe giá chính hãng", "expected_urls": ["cerave.vn", "hasaki.vn", "thegioididong.com", "shopee.vn"], "category": "vn_product", "region": "vn"}
+{"query": "tủ lạnh LG Inverter 300L giá tốt", "expected_urls": ["dienmayxanh.com", "thegioididong.com", "nguyenkim.com", "lge.com"], "category": "vn_product", "region": "vn"}
+{"query": "đồng hồ Apple Watch Series 11 giá VN", "expected_urls": ["apple.com", "thegioididong.com", "fptshop.com.vn", "cellphones.com.vn"], "category": "vn_product", "region": "vn"}
+{"query": "bàn phím cơ Keychron K2 giá bán tại VN", "expected_urls": ["keychron.com", "gearvn.com", "phongvu.vn", "shopee.vn"], "category": "vn_product", "region": "vn"}

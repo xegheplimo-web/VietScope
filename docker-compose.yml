@@ -1,0 +1,722 @@
+# Search Hub — Unified Docker Compose
+# 17 services, 1 network, 1 .env, 1 command
+#
+#   Core data/retrieval: hub-postgres (PostGIS), hub-redis, minio,
+#   opensearch, qdrant, embedding-service, reranker-service
+#   Search path: searxng (+valkey), firecrawl stack (api, playwright,
+#   redis, rabbitmq, postgres, foundationdb), search-router
+#   Opt-in profile: opensearch-dashboards (debug)
+#
+# Usage:
+#   docker compose up -d              # start all
+#   docker compose ps                 # check status
+#   docker compose logs -f search-router
+#   docker compose down               # stop all
+#
+# Ports exposed to host:
+#   8080  — SearXNG        3002 — Firecrawl API    8888 — Search Router
+#   5433  — hub-postgres   9000 — MinIO (9001 console)
+#   9200  — OpenSearch     6333 — Qdrant         8892 — embedding-service
+
+name: search-hub
+
+x-firecrawl-common: &firecrawl-common
+  build: firecrawl/apps/api
+  ulimits:
+    nofile:
+      soft: 65535
+      hard: 65535
+  networks:
+    - search-hub-net
+  logging:
+    driver: "json-file"
+    options:
+      max-size: "10m"
+      max-file: "3"
+      compress: "true"
+
+x-firecrawl-env: &firecrawl-env
+  REDIS_URL: redis://firecrawl-redis:6379
+  REDIS_RATE_LIMIT_URL: redis://firecrawl-redis:6379
+  PLAYWRIGHT_MICROSERVICE_URL: http://firecrawl-playwright:3000/scrape
+  POSTGRES_USER: postgres
+  POSTGRES_PASSWORD: postgres
+  POSTGRES_DB: postgres
+  POSTGRES_HOST: firecrawl-postgres
+  POSTGRES_PORT: "5432"
+  USE_DB_AUTHENTICATION: "false"
+  NUM_WORKERS_PER_QUEUE: "4"
+  CRAWL_CONCURRENT_REQUESTS: "10"
+  MAX_CONCURRENT_JOBS: "5"
+  BROWSER_POOL_SIZE: "3"
+  # AI features (optional)
+  OPENAI_API_KEY: ${OPENAI_API_KEY:-}
+  OPENAI_BASE_URL: ${OPENAI_BASE_URL:-}
+  MODEL_NAME: ${MODEL_NAME:-}
+  MODEL_EMBEDDING_NAME: ${MODEL_EMBEDDING_NAME:-}
+  OLLAMA_BASE_URL: ${OLLAMA_BASE_URL:-}
+  # SearXNG integration — Docker service name
+  SEARXNG_ENDPOINT: http://searxng:8080
+  SEARXNG_ENGINES: ${SEARXNG_ENGINES:-}
+  SEARXNG_CATEGORIES: ${SEARXNG_CATEGORIES:-general}
+  # Queue backend
+  NUQ_BACKEND: ${NUQ_BACKEND:-}
+  FDB_CLUSTER_FILE: ${NUQ_BACKEND:+/var/fdb/fdb.cluster}
+  # Misc
+  LOGGING_LEVEL: ${LOGGING_LEVEL:-INFO}
+  PROXY_SERVER: ${PROXY_SERVER:-}
+  PROXY_USERNAME: ${PROXY_USERNAME:-}
+  PROXY_PASSWORD: ${PROXY_PASSWORD:-}
+  BULL_AUTH_KEY: ${BULL_AUTH_KEY:-}
+  TEST_API_KEY: ${TEST_API_KEY:-}
+  SUPABASE_ANON_TOKEN: ${SUPABASE_ANON_TOKEN:-}
+  SUPABASE_URL: ${SUPABASE_URL:-}
+  SUPABASE_SERVICE_TOKEN: ${SUPABASE_SERVICE_TOKEN:-}
+  SELF_HOSTED_WEBHOOK_URL: ${SELF_HOSTED_WEBHOOK_URL:-}
+  SLACK_WEBHOOK_URL: ${SLACK_WEBHOOK_URL:-}
+  AUTUMN_SECRET_KEY: ${AUTUMN_SECRET_KEY:-}
+  ALLOW_LOCAL_WEBHOOKS: ${ALLOW_LOCAL_WEBHOOKS:-true}
+  BLOCK_MEDIA: ${BLOCK_MEDIA:-}
+
+services:
+  # ═══════════════════════════════════════════════════════════════════════════
+  # SEARXNG (Metasearch) — 2 containers
+  # ═══════════════════════════════════════════════════════════════════════════
+
+  searxng:
+    container_name: searxng
+    image: docker.io/searxng/searxng:2026.9.11-61d660276
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:${SEARXNG_PORT:-8080}:8080"
+    environment:
+      # Overrides the tracked settings.yml placeholder (deploy/searxng/).
+      SEARXNG_SECRET: ${SEARXNG_SECRET:-}
+    volumes:
+      - ./deploy/searxng/:/etc/searxng/:Z
+      - searxng-data:/var/cache/searxng/
+    networks:
+      - search-hub-net
+
+  searxng-valkey:
+    container_name: searxng-valkey
+    image: docker.io/valkey/valkey:9.1.2-alpine
+    command: valkey-server --save 30 1 --loglevel warning
+    restart: unless-stopped
+    volumes:
+      - valkey-data:/data/
+    networks:
+      - search-hub-net
+
+  # ═══════════════════════════════════════════════════════════════════════════
+  # FIRECRAWL (Web Acquisition) — 6 containers
+  # ═══════════════════════════════════════════════════════════════════════════
+
+  firecrawl-playwright:
+    <<: *firecrawl-common
+    build: firecrawl/apps/playwright-service-ts
+    container_name: firecrawl-playwright
+    restart: unless-stopped
+    environment:
+      PORT: "3000"
+      PROXY_SERVER: ${PROXY_SERVER:-}
+      PROXY_USERNAME: ${PROXY_USERNAME:-}
+      PROXY_PASSWORD: ${PROXY_PASSWORD:-}
+      ALLOW_LOCAL_WEBHOOKS: ${ALLOW_LOCAL_WEBHOOKS:-true}
+      BLOCK_MEDIA: ${BLOCK_MEDIA:-}
+      MAX_CONCURRENT_PAGES: "10"
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    cpus: 2.0
+    mem_limit: 4G
+    memswap_limit: 4G
+    tmpfs:
+      - /tmp/.cache:noexec,nosuid,size=1g
+
+  firecrawl-api:
+    <<: *firecrawl-common
+    container_name: firecrawl-api
+    restart: unless-stopped
+    environment:
+      <<: *firecrawl-env
+      HOST: "0.0.0.0"
+      PORT: "3002"
+      EXTRACT_WORKER_PORT: "3004"
+      WORKER_PORT: "3005"
+      NUQ_RABBITMQ_URL: amqp://firecrawl-rabbitmq:5672
+      HARNESS_STARTUP_TIMEOUT_MS: "60000"
+      ENV: local
+    depends_on:
+      firecrawl-redis:
+        condition: service_started
+      firecrawl-playwright:
+        condition: service_started
+      firecrawl-rabbitmq:
+        condition: service_healthy
+      firecrawl-postgres:
+        condition: service_healthy
+    ports:
+      - "127.0.0.1:${FIRECRAWL_PORT:-3002}:3002"
+    volumes:
+      - fdb-cluster-file:/var/fdb:ro
+    command: node dist/src/harness.js --start-docker
+    cpus: 4.0
+    mem_limit: 8G
+    memswap_limit: 8G
+
+  firecrawl-redis:
+    container_name: firecrawl-redis
+    image: redis:8.10.1-alpine
+    command: redis-server --bind 0.0.0.0
+    restart: unless-stopped
+    networks:
+      - search-hub-net
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "5m"
+        max-file: "2"
+        compress: "true"
+
+  firecrawl-rabbitmq:
+    container_name: firecrawl-rabbitmq
+    image: rabbitmq:3.13.7-management
+    command: rabbitmq-server
+    restart: unless-stopped
+    networks:
+      - search-hub-net
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "-q", "check_running"]
+      interval: 5s
+      timeout: 5s
+      retries: 3
+      start_period: 5s
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "5m"
+        max-file: "2"
+        compress: "true"
+
+  firecrawl-postgres:
+    container_name: firecrawl-postgres
+    build: firecrawl/apps/nuq-postgres
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: postgres
+    volumes:
+      - ./firecrawl/postgres-init/01-postgis.sql:/docker-entrypoint-initdb.d/01-postgis.sql:ro
+    restart: unless-stopped
+    networks:
+      - search-hub-net
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+      start_period: 10s
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+        compress: "true"
+
+  firecrawl-foundationdb:
+    container_name: firecrawl-foundationdb
+    image: foundationdb/foundationdb:7.3.63
+    environment:
+      FDB_NETWORKING_MODE: container
+      FDB_COORDINATOR_PORT: "4500"
+    restart: unless-stopped
+    networks:
+      - search-hub-net
+    volumes:
+      - fdb-data:/var/fdb/data
+      - fdb-cluster-file:/var/fdb
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+        compress: "true"
+
+  # ═══════════════════════════════════════════════════════════════════════════
+  # RERANKER SERVICE (BGE cross-encoder) — 1 container
+  # ═══════════════════════════════════════════════════════════════════════════
+
+  reranker-service:
+    build:
+      context: search-router
+      dockerfile: Dockerfile.reranker
+    container_name: reranker-service
+    restart: unless-stopped
+    environment:
+      RERANKER_MODEL: ${RERANKER_MODEL:-BAAI/bge-reranker-v2-m3}
+      RERANKER_DEVICE: ${RERANKER_DEVICE:-cpu}
+      RERANKER_BATCH_SIZE: ${RERANKER_BATCH_SIZE:-16}
+      RERANKER_PORT: ${RERANKER_PORT:-8891}
+      HOST: "0.0.0.0"
+      PORT: ${RERANKER_PORT:-8891}
+    # Internal-only: bound to loopback (private per v2.1 §3/§31).
+    ports:
+      - "127.0.0.1:${RERANKER_PORT:-8891}:8891"
+    networks:
+      - search-hub-net
+    healthcheck:
+      test: ["CMD", "python", "-c", "import httpx,os; r=httpx.get(f\"http://localhost:{os.getenv('PORT','8891')}/health\", timeout=5); exit(0 if r.status_code==200 else 1)"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+    cpus: 2.0
+    mem_limit: 4G
+    memswap_limit: 4G
+
+  # ═══════════════════════════════════════════════════════════════════════════
+  # EMBEDDING SERVICE (BGE-M3) — 1 container
+  # ═══════════════════════════════════════════════════════════════════════════
+
+  embedding-service:
+    build:
+      context: search-router
+      dockerfile: Dockerfile.embedding
+    container_name: embedding-service
+    restart: unless-stopped
+    environment:
+      EMBEDDING_MODEL: ${EMBEDDING_MODEL:-BAAI/bge-m3}
+      EMBEDDING_DEVICE: ${EMBEDDING_DEVICE:-cpu}
+      EMBEDDING_BATCH_SIZE: ${EMBEDDING_BATCH_SIZE:-32}
+      EMBEDDING_PORT: ${EMBEDDING_PORT:-8892}
+      HOST: "0.0.0.0"
+      PORT: ${EMBEDDING_PORT:-8892}
+    # Internal-only: bound to loopback (private per v2.1 §3/§31).
+    ports:
+      - "127.0.0.1:${EMBEDDING_PORT:-8892}:8892"
+    networks:
+      - search-hub-net
+    healthcheck:
+      test: ["CMD", "python", "-c", "import httpx,os; r=httpx.get(f\"http://localhost:{os.getenv('PORT','8892')}/health\", timeout=5); exit(0 if r.status_code==200 else 1)"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+    cpus: 2.0
+    mem_limit: 4G
+    memswap_limit: 4G
+
+  # ═══════════════════════════════════════════════════════════════════════════
+  # SEARCH ROUTER (Orchestrator) — 1 container
+  # ═══════════════════════════════════════════════════════════════════════════
+
+  search-router:
+    build: search-router
+    container_name: search-router
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:${ROUTER_PORT:-8888}:8888"
+    environment:
+      # Connect to services via Docker network names
+      SEARXNG_URL: http://searxng:8080
+      FIRECRAWL_URL: http://firecrawl-api:3002
+      FIRECRAWL_API_KEY: ${FIRECRAWL_API_KEY:-}
+
+      # LLM for RAG synthesis
+      LLM_BASE_URL: ${LLM_BASE_URL:-https://api.openai.com/v1}
+      LLM_API_KEY: ${LLM_API_KEY:-}
+      LLM_MODEL: ${LLM_MODEL:-gpt-4o-mini}
+      # Per-role model + backend overrides (A9) — point a role at a local
+      # runtime (LocalAI/llama.cpp) while others stay on the default endpoint
+      LLM_PLANNER_MODEL: ${LLM_PLANNER_MODEL:-}
+      LLM_PLANNER_BASE_URL: ${LLM_PLANNER_BASE_URL:-}
+      LLM_PLANNER_API_KEY: ${LLM_PLANNER_API_KEY:-}
+      LLM_PLANNER_FALLBACK: ${LLM_PLANNER_FALLBACK:-}
+      LLM_SYNTH_MODEL: ${LLM_SYNTH_MODEL:-}
+      LLM_SYNTH_BASE_URL: ${LLM_SYNTH_BASE_URL:-}
+      LLM_SYNTH_API_KEY: ${LLM_SYNTH_API_KEY:-}
+      LLM_SYNTH_FALLBACK: ${LLM_SYNTH_FALLBACK:-}
+      LLM_VERIFY_MODEL: ${LLM_VERIFY_MODEL:-}
+      LLM_VERIFY_BASE_URL: ${LLM_VERIFY_BASE_URL:-}
+      LLM_VERIFY_API_KEY: ${LLM_VERIFY_API_KEY:-}
+      LLM_VERIFY_FALLBACK: ${LLM_VERIFY_FALLBACK:-}
+      LLM_EXTRACT_MODEL: ${LLM_EXTRACT_MODEL:-}
+      LLM_EXTRACT_BASE_URL: ${LLM_EXTRACT_BASE_URL:-}
+      LLM_EXTRACT_API_KEY: ${LLM_EXTRACT_API_KEY:-}
+      LLM_EXTRACT_FALLBACK: ${LLM_EXTRACT_FALLBACK:-}
+
+      # Pipeline
+      MAX_RESULTS: ${MAX_RESULTS:-10}
+      SCRAPE_TOP_N: ${SCRAPE_TOP_N:-5}
+      SCRAPE_TIMEOUT: ${SCRAPE_TIMEOUT:-60}
+      CHUNK_SIZE: ${CHUNK_SIZE:-800}
+      CHUNK_OVERLAP: ${CHUNK_OVERLAP:-200}
+      MAX_CHUNKS_PER_SOURCE: ${MAX_CHUNKS_PER_SOURCE:-3}
+
+      # GitHub
+      GITHUB_TOKEN: ${GITHUB_TOKEN:-}
+
+      # Exa (premium semantic search, optional, deep_research only)
+      EXA_API_KEY: ${EXA_API_KEY:-}
+
+      # Dedicated Search-Hub Redis (v2.1): answer/evidence/semantic cache,
+      # rate limiting, short-lived request state. NOT shared with Firecrawl.
+      REDIS_URL: ${REDIS_URL:-redis://hub-redis:6379/0}
+
+      # Dedicated Search-Hub Postgres: api_keys, tenants, usage, query_logs,
+      # domain_profiles, crawl_frontier. NOT shared with firecrawl-postgres.
+      HUB_DATABASE_URL: ${HUB_DATABASE_URL:-postgresql://searchhub:${HUB_PG_PASSWORD:-searchhub}@hub-postgres:5432/searchhub}
+
+      # Public API auth (P10): disabled by default for local/dev; enable in
+      # production behind the reverse proxy.
+      API_AUTH_ENABLED: ${API_AUTH_ENABLED:-false}
+      HUB_ADMIN_KEY: ${HUB_ADMIN_KEY:-}
+      # OpenAI-compat gateway (P1): model ids for GET /v1/models +
+      # request deadline for /v1/chat/completions.
+      OPENAI_MODELS: ${OPENAI_MODELS:-duyai-search}
+      OPENAI_TIMEOUT_S: ${OPENAI_TIMEOUT_S:-300}
+
+      # BGE reranker and embedding services (Phase 1)
+      RERANKER_SERVICE_URL: ${RERANKER_SERVICE_URL:-http://reranker-service:8891}
+      EMBEDDING_SERVICE_URL: ${EMBEDDING_SERVICE_URL:-http://embedding-service:8892}
+
+      # OpenSearch (Phase 2/6A) — lexical/web index, Docker service name
+      OPENSEARCH_ENABLED: ${OPENSEARCH_ENABLED:-true}
+      OPENSEARCH_HOST: ${OPENSEARCH_HOST:-opensearch}
+      OPENSEARCH_PORT: ${OPENSEARCH_PORT:-9200}
+      INDEXING_ENABLED: ${INDEXING_ENABLED:-true}
+
+      # Qdrant (Phase 6B) — vector index; flags default off until P6E rollout
+      QDRANT_URL: ${QDRANT_URL:-http://qdrant:6333}
+      QDRANT_GRPC_URL: ${QDRANT_GRPC_URL:-http://qdrant:6334}
+      QDRANT_ENABLED: ${QDRANT_ENABLED:-true}
+      QDRANT_DENSE_ENABLED: ${QDRANT_DENSE_ENABLED:-false}
+      QDRANT_SPARSE_ENABLED: ${QDRANT_SPARSE_ENABLED:-false}
+      QDRANT_MULTIVECTOR_ENABLED: ${QDRANT_MULTIVECTOR_ENABLED:-false}
+      QDRANT_IMAGES_ENABLED: ${QDRANT_IMAGES_ENABLED:-false}
+
+      # Hybrid federated retrieval (P11) — OpenSearch BM25 + Qdrant dense → RRF
+      HYBRID_RETRIEVAL_ENABLED: ${HYBRID_RETRIEVAL_ENABLED:-true}
+      HYBRID_TOP_K: ${HYBRID_TOP_K:-60}
+      HYBRID_RRF_K: ${HYBRID_RRF_K:-60}
+      HYBRID_FUSED_TOP: ${HYBRID_FUSED_TOP:-40}
+
+      # MinIO (Phase 1/T2) — raw snapshot object store (document_snapshots)
+      MINIO_ENDPOINT: ${MINIO_ENDPOINT:-http://minio:9000}
+      MINIO_ACCESS_KEY: ${MINIO_ACCESS_KEY:-${MINIO_ROOT_USER:-minioadmin}}
+      MINIO_SECRET_KEY: ${MINIO_SECRET_KEY:-${MINIO_ROOT_PASSWORD:-minioadmin}}
+      MINIO_BUCKET_RAW: ${MINIO_BUCKET_RAW:-sh-raw-snapshots}
+
+      # Extraction engine (Phase 3) — Trafilatura main-text extraction on
+      # crawled snapshots, quality gate, then OpenSearch/Qdrant indexing.
+      EXTRACTION_ENABLED: ${EXTRACTION_ENABLED:-true}
+      EXTRACTION_MIN_CHARS: ${EXTRACTION_MIN_CHARS:-100}
+      EXTRACTION_MIN_QUALITY: ${EXTRACTION_MIN_QUALITY:-0.30}
+
+      # Observability (disabled by default; enable with OTEL_ENABLED=true)
+      OTEL_ENABLED: ${OTEL_ENABLED:-false}
+      OTEL_SERVICE_NAME: search-router
+      OTEL_EXPORTER_OTLP_ENDPOINT: ${OTEL_EXPORTER_OTLP_ENDPOINT:-http://otel-collector:4317}
+      DEPLOYMENT_ENVIRONMENT: ${DEPLOYMENT_ENVIRONMENT:-dev}
+      APP_VERSION: ${APP_VERSION:-3.0.0}
+
+      # Server
+      HOST: "0.0.0.0"
+      PORT: "8888"
+      # Comma-separated CORS origins — defaults cover localhost + 127.0.0.1
+      # dev frontends (Next.js :3000, Vite :5173).
+      CORS_ORIGINS: ${CORS_ORIGINS:-http://localhost:3000,http://127.0.0.1:3000,http://localhost:5173,http://127.0.0.1:5173}
+    depends_on:
+      searxng:
+        condition: service_started
+      firecrawl-api:
+        condition: service_started
+      hub-redis:
+        condition: service_started
+      hub-postgres:
+        condition: service_healthy
+      reranker-service:
+        condition: service_started
+      embedding-service:
+        condition: service_started
+      opensearch:
+        condition: service_started
+      qdrant:
+        condition: service_started
+      minio:
+        condition: service_started
+    networks:
+      - search-hub-net
+    healthcheck:
+      test: ["CMD", "python", "-c", "import httpx; r=httpx.get('http://localhost:8888/health', timeout=5); exit(0 if r.status_code==200 else 1)"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 15s
+
+  # ═══════════════════════════════════════════════════════════════════════════
+  # HUB-REDIS (P10) — dedicated cache/rate-limit for Search Router
+  # ═══════════════════════════════════════════════════════════════════════════
+
+  hub-redis:
+    image: docker.io/valkey/valkey:9.1.2-alpine
+    container_name: hub-redis
+    restart: unless-stopped
+    command: valkey-server --save 60 100 --loglevel warning --maxmemory 512mb --maxmemory-policy allkeys-lru
+    # Internal-only: bound to loopback (private per v2.1 §3/§31).
+    ports:
+      - "127.0.0.1:${HUB_REDIS_PORT:-6380}:6379"
+    volumes:
+      - hub-redis-data:/data/
+    networks:
+      - search-hub-net
+    healthcheck:
+      test: ["CMD", "valkey-cli", "ping"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 5s
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "5m"
+        max-file: "2"
+        compress: "true"
+
+  # ═══════════════════════════════════════════════════════════════════════════
+  # HUB-POSTGRES (P10) — API keys, tenants, usage, query_logs, crawl_frontier
+  # ═══════════════════════════════════════════════════════════════════════════
+
+  hub-postgres:
+    # PostGIS build of Postgres 16 — same PGDATA layout as the plain postgres
+    # image, so the existing hub-pg-data volume carries over without a dump.
+    image: docker.io/postgis/postgis:16-3.5-alpine
+    container_name: hub-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: searchhub
+      POSTGRES_PASSWORD: ${HUB_PG_PASSWORD:-searchhub}
+      POSTGRES_DB: searchhub
+    # Internal-only: bound to loopback (private per v2.1 §3/§31).
+    ports:
+      - "127.0.0.1:${HUB_PG_PORT:-5433}:5432"
+    volumes:
+      - hub-pg-data:/var/lib/postgresql/data
+      - ./search-router/db/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
+    networks:
+      - search-hub-net
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U searchhub -d searchhub"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 10s
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+        compress: "true"
+
+  # ═══════════════════════════════════════════════════════════════════════════
+  # MINIO (Phase 1/T2) — S3-compatible store for raw document snapshots
+  # ═══════════════════════════════════════════════════════════════════════════
+
+  minio:
+    # MinIO gated quay.io + docker.io public pulls in Oct-2025. elestio/minio
+    # mirrors the official binary — digest-pinned here to the same release
+    # (RELEASE.2025-09-07T16-13-09Z) the quay pin tracked.
+    image: elestio/minio:latest@sha256:25348a257f1ece1b192f25f6cd9854618fa86422ac87b494b5d4e629c556d4bd
+    container_name: minio
+    restart: unless-stopped
+    command: server /data --console-address ":9001"
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER:-minioadmin}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:-minioadmin}
+    # Internal-only: bound to loopback (private per v2.1 §3/§31).
+    ports:
+      - "127.0.0.1:${MINIO_PORT:-9000}:9000"
+      - "127.0.0.1:${MINIO_CONSOLE_PORT:-9001}:9001"
+    volumes:
+      - minio-data:/data
+    networks:
+      - search-hub-net
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fsS http://localhost:9000/minio/health/live || exit 1"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "5m"
+        max-file: "2"
+        compress: "true"
+
+  # ═══════════════════════════════════════════════════════════════════════════
+  # OPENSEARCH (Phase 2/6A) — lexical/web search index
+  # ═══════════════════════════════════════════════════════════════════════════
+
+  opensearch:
+    image: opensearchproject/opensearch:2.18.0
+    container_name: opensearch
+    restart: unless-stopped
+    environment:
+      discovery.type: single-node
+      # DISABLE_SECURITY_PLUGIN is the env the 2.x entrypoint actually reads
+      # (plugins.security.disabled is ignored → demo installer → crash loop).
+      DISABLE_SECURITY_PLUGIN: "true"
+      OPENSEARCH_JAVA_OPTS: -Xms512m -Xmx512m
+    # Internal-only: bound to loopback (private per v2.1 §3/§31).
+    ports:
+      - "127.0.0.1:9200:9200"
+      - "127.0.0.1:9600:9600"
+    volumes:
+      - opensearch_data:/usr/share/opensearch/data
+    networks:
+      - search-hub-net
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9200/_cluster/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 30s
+
+  opensearch-dashboards:
+    image: opensearchproject/opensearch-dashboards:2.18.0
+    profiles: ["debug"]
+    container_name: opensearch-dashboards
+    restart: unless-stopped
+    environment:
+      OPENSEARCH_HOSTS: '["http://opensearch:9200"]'
+      DISABLE_SECURITY_DASHBOARDS_PLUGIN: "true"
+    ports:
+      - "127.0.0.1:${OPENSEARCH_DASHBOARDS_PORT:-5601}:5601"
+    networks:
+      - search-hub-net
+    depends_on:
+      opensearch:
+        condition: service_healthy
+
+  # ═══════════════════════════════════════════════════════════════════════════
+  # QDRANT (Phase 6B) — vector index for dense/sparse/multivector retrieval
+  # ═══════════════════════════════════════════════════════════════════════════
+
+  qdrant:
+    image: qdrant/qdrant:v1.19.1
+    container_name: qdrant
+    restart: unless-stopped
+    environment:
+      QDRANT__SERVICE__HTTP_PORT: "6333"
+      QDRANT__SERVICE__GRPC_PORT: "6334"
+      QDRANT__LOG_LEVEL: "INFO"
+    # Internal-only: bound to loopback (private per v2.1 §3/§31).
+    ports:
+      - "127.0.0.1:6333:6333"
+      - "127.0.0.1:6334:6334"
+    volumes:
+      - qdrant_storage:/qdrant/storage
+    networks:
+      - search-hub-net
+    # No healthcheck: the qdrant image ships no curl/wget; nothing depends_on
+    # this service with a healthy condition, so omit it rather than flap.
+
+  # ═══════════════════════════════════════════════════════════════════════════
+  # OSM-IMPORT (P14) — one-shot osm2pgsql flex import of OSM Vietnam into
+  # hub-postgres.osm_pois. Profile-gated: never starts with `up -d`.
+  #   scripts/import-osm-vietnam.sh
+  # ═══════════════════════════════════════════════════════════════════════════
+
+  osm-import:
+    image: docker.io/iboates/osm2pgsql:2.1.1
+    container_name: osm-import
+    profiles: ["import"]
+    depends_on:
+      hub-postgres:
+        condition: service_healthy
+    volumes:
+      - ./.osm-data:/data:ro
+      - ./deploy/osm:/styles:ro
+    command: >
+      --create --slim --flat-nodes /tmp/flat-nodes.bin
+      --output=flex --style /styles/pois.lua
+      --number-processes 2
+      -d postgresql://searchhub:${HUB_PG_PASSWORD:-searchhub}@hub-postgres:5432/searchhub
+      ${PBF_FILE:-/data/vietnam-latest.osm.pbf}
+    networks:
+      - search-hub-net
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "2"
+        compress: "true"
+
+  prometheus:
+    image: prom/prometheus:v3.5.0
+    profiles: ["observability"]
+    ports: ["127.0.0.1:9090:9090"]
+    volumes:
+      - ./observability/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - prometheus-data:/prometheus
+    networks: [search-hub-net]
+
+  otel-collector:
+    image: otel/opentelemetry-collector-contrib:0.136.0
+    profiles: ["observability"]
+    command: ["--config=/etc/otelcol-contrib/config.yaml"]
+    volumes:
+      - ./observability/otel-collector.yaml:/etc/otelcol-contrib/config.yaml:ro
+    depends_on: [tempo]
+    networks: [search-hub-net]
+
+  tempo:
+    image: grafana/tempo:2.8.2
+    profiles: ["observability"]
+    command: ["-config.file=/etc/tempo.yaml"]
+    volumes:
+      - ./observability/tempo/tempo.yaml:/etc/tempo.yaml:ro
+      - tempo-data:/tmp/tempo
+    networks: [search-hub-net]
+
+  loki:
+    image: grafana/loki:3.5.0
+    profiles: ["observability"]
+    command: ["-config.file=/etc/loki/local-config.yaml"]
+    volumes: [loki-data:/loki]
+    networks: [search-hub-net]
+
+  grafana:
+    image: grafana/grafana:12.1.0
+    profiles: ["observability"]
+    ports: ["127.0.0.1:3000:3000"]
+    environment:
+      GF_USERS_ALLOW_SIGN_UP: "false"
+      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_ADMIN_PASSWORD:-change-me}
+    volumes:
+      - grafana-data:/var/lib/grafana
+      - ./observability/grafana/provisioning:/etc/grafana/provisioning:ro
+    depends_on: [prometheus, tempo, loki]
+    networks: [search-hub-net]
+
+networks:
+  search-hub-net:
+    driver: bridge
+
+volumes:
+  searxng-data:
+  valkey-data:
+  fdb-data:
+  fdb-cluster-file:
+  qdrant_storage:
+  opensearch_data:
+  hub-redis-data:
+  hub-pg-data:
+  minio-data:
+  prometheus-data:
+  tempo-data:
+  loki-data:
+  grafana-data:

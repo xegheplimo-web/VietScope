@@ -1,0 +1,707 @@
+{
+  "version": "1.0",
+  "description": "Search-Hub golden set — 50 queries for offline evaluation",
+  "created": "2026-09-21",
+  "queries": [
+    {
+      "query_id": "gq_001",
+      "query": "Qwen Image 2.1 giá API bao nhiêu?",
+      "lang": "vi",
+      "intent": "pricing_lookup",
+      "relevant_urls": [
+        "https://help.aliyun.com/zh/model-studio/models",
+        "https://qwen.ai/blog"
+      ],
+      "gold_answer": "Qwen Image 2.1 có giá API $0.02 mỗi ảnh ở độ phân giải 1024×1024.",
+      "gold_facts": ["$0.02 per image", "1024x1024 resolution"],
+      "freshness_class": "high",
+      "mode": "normal"
+    },
+    {
+      "query_id": "gq_002",
+      "query": "Python 3.14 có gì mới?",
+      "lang": "vi",
+      "intent": "api_reference",
+      "relevant_urls": [
+        "https://docs.python.org/3.14/whatsnew/3.14.html",
+        "https://peps.python.org/pep-745/"
+      ],
+      "gold_answer": "Python 3.14 thêm free-threaded mode, JIT compiler cải thiện, và type hint mới.",
+      "gold_facts": ["free-threaded mode", "JIT compiler", "type hints"],
+      "freshness_class": "medium",
+      "mode": "normal"
+    },
+    {
+      "query_id": "gq_003",
+      "query": "OpenAI GPT-5 giá bao nhiêu?",
+      "lang": "vi",
+      "intent": "pricing_lookup",
+      "relevant_urls": [
+        "https://openai.com/api/pricing/",
+        "https://platform.openai.com/docs/pricing"
+      ],
+      "gold_answer": "GPT-5 có giá $5/1M input tokens và $15/1M output tokens.",
+      "gold_facts": ["$5/1M input", "$15/1M output"],
+      "freshness_class": "high",
+      "mode": "normal"
+    },
+    {
+      "query_id": "gq_004",
+      "query": "cách cài đặt Docker trên Ubuntu 24.04",
+      "lang": "vi",
+      "intent": "howto_tutorial",
+      "relevant_urls": [
+        "https://docs.docker.com/engine/install/ubuntu/",
+        "https://ubuntu.com/tutorials/install-and-configure-docker"
+      ],
+      "gold_answer": "Cài Docker trên Ubuntu 24.04 bằng cách thêm Docker repository và cài docker-ce.",
+      "gold_facts": ["add repository", "install docker-ce"],
+      "freshness_class": "slow",
+      "mode": "normal"
+    },
+    {
+      "query_id": "gq_005",
+      "query": "transformer là gì?",
+      "lang": "vi",
+      "intent": "definition",
+      "relevant_urls": [
+        "https://en.wikipedia.org/wiki/Transformer_(machine_learning_model)",
+        "https://arxiv.org/abs/1706.03762"
+      ],
+      "gold_answer": "Transformer là kiến trúc neural network dùng attention mechanism để xử lý sequence.",
+      "gold_facts": ["attention mechanism", "sequence processing"],
+      "freshness_class": "static",
+      "mode": "fast"
+    },
+    {
+      "query_id": "gq_006",
+      "query": "giá Bitcoin hôm nay",
+      "lang": "vi",
+      "intent": "pricing_lookup",
+      "relevant_urls": [
+        "https://api.coindesk.com/v1/bpi/currentprice.json",
+        "https://www.coingecko.com/en/coins/bitcoin"
+      ],
+      "gold_answer": "Giá Bitcoin cập nhật real-time, thường thay đổi mỗi giây.",
+      "gold_facts": ["real-time price"],
+      "freshness_class": "realtime",
+      "mode": "fast"
+    },
+    {
+      "query_id": "gq_007",
+      "query": "so sánh GPT-4o và Claude 3.5",
+      "lang": "vi",
+      "intent": "comparison",
+      "relevant_urls": [
+        "https://openai.com/index/gpt-4o/",
+        "https://www.anthropic.com/news/claude-3-5-sonnet"
+      ],
+      "gold_answer": "GPT-4o mạnh hơn về multimodal, Claude 3.5 mạnh hơn về reasoning và safety.",
+      "gold_facts": ["multimodal", "reasoning", "safety"],
+      "freshness_class": "medium",
+      "mode": "normal"
+    },
+    {
+      "query_id": "gq_008",
+      "query": "cách dùng FastAPI với SQLAlchemy",
+      "lang": "vi",
+      "intent": "howto_tutorial",
+      "relevant_urls": [
+        "https://fastapi.tiangolo.com/tutorial/sql-databases/",
+        "https://docs.sqlalchemy.org/en/20/orm/quickstart.html"
+      ],
+      "gold_answer": "Dùng SQLAlchemy ORM với FastAPI qua dependency injection và session management.",
+      "gold_facts": ["dependency injection", "session management"],
+      "freshness_class": "slow",
+      "mode": "normal"
+    },
+    {
+      "query_id": "gq_009",
+      "query": "React 19 có gì mới?",
+      "lang": "vi",
+      "intent": "api_reference",
+      "relevant_urls": [
+        "https://react.dev/blog/2024/12/05/react-19",
+        "https://github.com/facebook/react/releases"
+      ],
+      "gold_answer": "React 19 thêm Server Components, Actions, và cải thiện performance.",
+      "gold_facts": ["Server Components", "Actions", "performance"],
+      "freshness_class": "medium",
+      "mode": "normal"
+    },
+    {
+      "query_id": "gq_010",
+      "query": "giá VND/USD hôm nay",
+      "lang": "vi",
+      "intent": "pricing_lookup",
+      "relevant_urls": [
+        "https://api.exchangerate-api.com/v4/latest/USD",
+        "https://www.vietcombank.com.vn/ExchangeRates"
+      ],
+      "gold_answer": "Tỉ giá VND/USD hôm nay khoảng 24,500 VND/USD.",
+      "gold_facts": ["24,500 VND/USD"],
+      "freshness_class": "realtime",
+      "mode": "fast"
+    },
+    {
+      "query_id": "gq_011",
+      "query": "cách deploy lên VPS với Docker Compose",
+      "lang": "vi",
+      "intent": "howto_tutorial",
+      "relevant_urls": [
+        "https://docs.docker.com/compose/gettingstarted/",
+        "https://www.digitalocean.com/community/tutorials/how-to-install-docker-compose-on-ubuntu-22-04"
+      ],
+      "gold_answer": "Viết docker-compose.yml, chạy docker compose up -d để deploy.",
+      "gold_facts": ["docker-compose.yml", "docker compose up -d"],
+      "freshness_class": "slow",
+      "mode": "normal"
+    },
+    {
+      "query_id": "gq_012",
+      "query": "người dùng đánh giá sản phẩm này sao?",
+      "lang": "vi",
+      "intent": "product_opinion",
+      "relevant_urls": [
+        "https://www.reddit.com/r/productreviews/",
+        "https://www.trustpilot.com/"
+      ],
+      "gold_answer": "Người dùng đánh giá tích cực về hiệu suất nhưng phàn nàn về giá cao.",
+      "gold_facts": ["positive performance", "negative price"],
+      "freshness_class": "medium",
+      "mode": "normal"
+    },
+    {
+      "query_id": "gq_013",
+      "query": "cách cấu hình Nginx reverse proxy",
+      "lang": "vi",
+      "intent": "howto_tutorial",
+      "relevant_urls": [
+        "https://nginx.org/en/docs/http/ngx_http_proxy_module.html",
+        "https://www.digitalocean.com/community/tutorials/how-to-set-up-nginx-reverse-proxy"
+      ],
+      "gold_answer": "Cấu hình Nginx reverse proxy bằng cách thêm proxy_pass vào server block.",
+      "gold_facts": ["proxy_pass", "server block"],
+      "freshness_class": "slow",
+      "mode": "normal"
+    },
+    {
+      "query_id": "gq_014",
+      "query": "giá Ethereum hôm nay",
+      "lang": "vi",
+      "intent": "pricing_lookup",
+      "relevant_urls": [
+        "https://api.coingecko.com/api/v3/simple/price?ids=ethereum&vs_currencies=usd",
+        "https://www.coingecko.com/en/coins/ethereum"
+      ],
+      "gold_answer": "Giá Ethereum cập nhật real-time.",
+      "gold_facts": ["real-time price"],
+      "freshness_class": "realtime",
+      "mode": "fast"
+    },
+    {
+      "query_id": "gq_015",
+      "query": "cách dùng Git với GitHub Actions",
+      "lang": "vi",
+      "intent": "howto_tutorial",
+      "relevant_urls": [
+        "https://docs.github.com/en/actions/quickstart",
+        "https://docs.github.com/en/actions/using-workflows"
+      ],
+      "gold_answer": "Tạo workflow YAML trong .github/workflows/ để tự động hóa CI/CD.",
+      "gold_facts": ["workflow YAML", ".github/workflows"],
+      "freshness_class": "slow",
+      "mode": "normal"
+    },
+    {
+      "query_id": "gq_016",
+      "query": "so sánh React và Vue",
+      "lang": "vi",
+      "intent": "comparison",
+      "relevant_urls": [
+        "https://react.dev/",
+        "https://vuejs.org/"
+      ],
+      "gold_answer": "React có ecosystem lớn hơn, Vue dễ học hơn và nhẹ hơn.",
+      "gold_facts": ["ecosystem", "learning curve", "bundle size"],
+      "freshness_class": "medium",
+      "mode": "normal"
+    },
+    {
+      "query_id": "gq_017",
+      "query": "cách cài đặt PostgreSQL trên Ubuntu",
+      "lang": "vi",
+      "intent": "howto_tutorial",
+      "relevant_urls": [
+        "https://www.postgresql.org/docs/current/installation.html",
+        "https://ubuntu.com/server/docs/databases-postgresql"
+      ],
+      "gold_answer": "Cài PostgreSQL bằng apt install postgresql và cấu hình pg_hba.conf.",
+      "gold_facts": ["apt install", "pg_hba.conf"],
+      "freshness_class": "slow",
+      "mode": "normal"
+    },
+    {
+      "query_id": "gq_018",
+      "query": "giá AWS EC2 tính thế nào?",
+      "lang": "vi",
+      "intent": "pricing_lookup",
+      "relevant_urls": [
+        "https://aws.amazon.com/ec2/pricing/",
+        "https://instances.vantage.sh/"
+      ],
+      "gold_answer": "AWS EC2 tính giá theo instance type, region, và usage (on-demand/reserved/spot).",
+      "gold_facts": ["instance type", "region", "on-demand/reserved/spot"],
+      "freshness_class": "high",
+      "mode": "normal"
+    },
+    {
+      "query_id": "gq_019",
+      "query": "cách dùng Docker volume để persist data",
+      "lang": "vi",
+      "intent": "howto_tutorial",
+      "relevant_urls": [
+        "https://docs.docker.com/storage/volumes/",
+        "https://docs.docker.com/compose/compose-file/05-services/#volumes"
+      ],
+      "gold_answer": "Dùng docker volume create và mount vào container để persist data.",
+      "gold_facts": ["docker volume create", "mount"],
+      "freshness_class": "slow",
+      "mode": "normal"
+    },
+    {
+      "query_id": "gq_020",
+      "query": "người dùng nói gì về iPhone 16?",
+      "lang": "vi",
+      "intent": "product_opinion",
+      "relevant_urls": [
+        "https://www.reddit.com/r/iphone/",
+        "https://www.macrumors.com/"
+      ],
+      "gold_answer": "Người dùng đánh giá camera tốt hơn nhưng pin vẫn chưa ổn định.",
+      "gold_facts": ["camera improved", "battery unstable"],
+      "freshness_class": "medium",
+      "mode": "normal"
+    },
+    {
+      "query_id": "gq_021",
+      "query": "cách cấu hình SSL cho Nginx",
+      "lang": "vi",
+      "intent": "howto_tutorial",
+      "relevant_urls": [
+        "https://nginx.org/en/docs/http/configuring_https_servers.html",
+        "https://certbot.eff.org/"
+      ],
+      "gold_answer": "Dùng Certbot để lấy SSL certificate và cấu hình Nginx listen 443 ssl.",
+      "gold_facts": ["Certbot", "listen 443 ssl"],
+      "freshness_class": "slow",
+      "mode": "normal"
+    },
+    {
+      "query_id": "gq_022",
+      "query": "giá Google Cloud Platform tính thế nào?",
+      "lang": "vi",
+      "intent": "pricing_lookup",
+      "relevant_urls": [
+        "https://cloud.google.com/pricing/",
+        "https://cloud.google.com/compute/vm-instance-pricing"
+      ],
+      "gold_answer": "GCP tính giá theo machine type, region, và usage (on-demand/sustained-use/committed-use).",
+      "gold_facts": ["machine type", "region", "on-demand/sustained-use/committed-use"],
+      "freshness_class": "high",
+      "mode": "normal"
+    },
+    {
+      "query_id": "gq_023",
+      "query": "cách dùng Kubernetes deployment",
+      "lang": "vi",
+      "intent": "howto_tutorial",
+      "relevant_urls": [
+        "https://kubernetes.io/docs/concepts/workloads/controllers/deployment/",
+        "https://kubernetes.io/docs/tasks/run-application/run-stateless-application-deployment/"
+      ],
+      "gold_answer": "Tạo deployment YAML với replicas, image, và ports, rồi kubectl apply.",
+      "gold_facts": ["deployment YAML", "replicas", "kubectl apply"],
+      "freshness_class": "slow",
+      "mode": "normal"
+    },
+    {
+      "query_id": "gq_024",
+      "query": "so sánh AWS và Azure",
+      "lang": "vi",
+      "intent": "comparison",
+      "relevant_urls": [
+        "https://aws.amazon.com/",
+        "https://azure.microsoft.com/"
+      ],
+      "gold_answer": "AWS có nhiều service hơn, Azure tích hợp tốt hơn với Microsoft ecosystem.",
+      "gold_facts": ["service count", "Microsoft integration"],
+      "freshness_class": "medium",
+      "mode": "normal"
+    },
+    {
+      "query_id": "gq_025",
+      "query": "cách cài đặt Redis trên Ubuntu",
+      "lang": "vi",
+      "intent": "howto_tutorial",
+      "relevant_urls": [
+        "https://redis.io/docs/getting-started/installation/install-redis-on-linux/",
+        "https://ubuntu.com/server/docs/databases-redis"
+      ],
+      "gold_answer": "Cài Redis bằng apt install redis-server và cấu hình redis.conf.",
+      "gold_facts": ["apt install redis-server", "redis.conf"],
+      "freshness_class": "slow",
+      "mode": "normal"
+    },
+    {
+      "query_id": "gq_026",
+      "query": "giá OpenAI API GPT-4o mini",
+      "lang": "vi",
+      "intent": "pricing_lookup",
+      "relevant_urls": [
+        "https://openai.com/api/pricing/",
+        "https://platform.openai.com/docs/pricing"
+      ],
+      "gold_answer": "GPT-4o mini có giá $0.15/1M input tokens và $0.60/1M output tokens.",
+      "gold_facts": ["$0.15/1M input", "$0.60/1M output"],
+      "freshness_class": "high",
+      "mode": "normal"
+    },
+    {
+      "query_id": "gq_027",
+      "query": "cách dùng Docker network",
+      "lang": "vi",
+      "intent": "howto_tutorial",
+      "relevant_urls": [
+        "https://docs.docker.com/network/",
+        "https://docs.docker.com/network/bridge/"
+      ],
+      "gold_answer": "Tạo custom bridge network để các container giao tiếp với nhau.",
+      "gold_facts": ["custom bridge network", "container communication"],
+      "freshness_class": "slow",
+      "mode": "normal"
+    },
+    {
+      "query_id": "gq_028",
+      "query": "người dùng đánh giá MacBook Pro M4?",
+      "lang": "vi",
+      "intent": "product_opinion",
+      "relevant_urls": [
+        "https://www.reddit.com/r/macbookpro/",
+        "https://www.apple.com/macbook-pro/"
+      ],
+      "gold_answer": "Người dùng đánh giá cao hiệu suất và màn hình nhưng phàn nàn về giá.",
+      "gold_facts": ["performance", "display", "price"],
+      "freshness_class": "medium",
+      "mode": "normal"
+    },
+    {
+      "query_id": "gq_029",
+      "query": "cách cấu hình firewall với UFW",
+      "lang": "vi",
+      "intent": "howto_tutorial",
+      "relevant_urls": [
+        "https://ubuntu.com/server/docs/security-firewall",
+        "https://www.digitalocean.com/community/tutorials/how-to-set-up-a-firewall-with-ufw"
+      ],
+      "gold_answer": "Dùng ufw allow, ufw deny, và ufw enable để quản lý firewall.",
+      "gold_facts": ["ufw allow", "ufw deny", "ufw enable"],
+      "freshness_class": "slow",
+      "mode": "normal"
+    },
+    {
+      "query_id": "gq_030",
+      "query": "giá Azure Functions tính thế nào?",
+      "lang": "vi",
+      "intent": "pricing_lookup",
+      "relevant_urls": [
+        "https://azure.microsoft.com/en-us/products/functions/",
+        "https://azure.microsoft.com/en-us/pricing/details/functions/"
+      ],
+      "gold_answer": "Azure Functions tính giá theo execution count và memory usage.",
+      "gold_facts": ["execution count", "memory usage"],
+      "freshness_class": "high",
+      "mode": "normal"
+    },
+    {
+      "query_id": "gq_031",
+      "query": "cách dùng Terraform với AWS",
+      "lang": "vi",
+      "intent": "howto_tutorial",
+      "relevant_urls": [
+        "https://developer.hashicorp.com/terraform/tutorials/aws-get-started",
+        "https://registry.terraform.io/providers/hashicorp/aws/latest/docs"
+      ],
+      "gold_answer": "Cấu hình provider AWS, viết resource HCL, và chạy terraform apply.",
+      "gold_facts": ["provider AWS", "resource HCL", "terraform apply"],
+      "freshness_class": "slow",
+      "mode": "normal"
+    },
+    {
+      "query_id": "gq_032",
+      "query": "so sánh PostgreSQL và MySQL",
+      "lang": "vi",
+      "intent": "comparison",
+      "relevant_urls": [
+        "https://www.postgresql.org/",
+        "https://www.mysql.com/"
+      ],
+      "gold_answer": "PostgreSQL mạnh hơn về features và extensibility, MySQL nhanh hơn cho read-heavy workloads.",
+      "gold_facts": ["features", "extensibility", "read-heavy performance"],
+      "freshness_class": "medium",
+      "mode": "normal"
+    },
+    {
+      "query_id": "gq_033",
+      "query": "cách cài đặt MongoDB trên Ubuntu",
+      "lang": "vi",
+      "intent": "howto_tutorial",
+      "relevant_urls": [
+        "https://www.mongodb.com/docs/manual/tutorial/install-mongodb-on-ubuntu/",
+        "https://ubuntu.com/server/docs/databases-mongodb"
+      ],
+      "gold_answer": "Cài MongoDB bằng apt install mongodb-org và cấu hình mongod.conf.",
+      "gold_facts": ["apt install mongodb-org", "mongod.conf"],
+      "freshness_class": "slow",
+      "mode": "normal"
+    },
+    {
+      "query_id": "gq_034",
+      "query": "giá Cloudflare CDN",
+      "lang": "vi",
+      "intent": "pricing_lookup",
+      "relevant_urls": [
+        "https://www.cloudflare.com/plans/",
+        "https://www.cloudflare.com/cdn/"
+      ],
+      "gold_answer": "Cloudflare CDN có plan free và trả phí từ $20/tháng.",
+      "gold_facts": ["free plan", "$20/month"],
+      "freshness_class": "high",
+      "mode": "normal"
+    },
+    {
+      "query_id": "gq_035",
+      "query": "cách dùng Ansible để quản lý server",
+      "lang": "vi",
+      "intent": "howto_tutorial",
+      "relevant_urls": [
+        "https://docs.ansible.com/ansible/latest/getting_started/index.html",
+        "https://www.ansible.com/resources/get-started"
+      ],
+      "gold_answer": "Viết playbook YAML, inventory file, và chạy ansible-playbook.",
+      "gold_facts": ["playbook YAML", "inventory", "ansible-playbook"],
+      "freshness_class": "slow",
+      "mode": "normal"
+    },
+    {
+      "query_id": "gq_036",
+      "query": "người dùng đánh giá Tesla Model 3?",
+      "lang": "vi",
+      "intent": "product_opinion",
+      "relevant_urls": [
+        "https://www.reddit.com/r/teslamotors/",
+        "https://www.tesla.com/model3"
+      ],
+      "gold_answer": "Người dùng đánh giá cao hiệu suất và phạm vi hoạt động nhưng phàn nàn về build quality.",
+      "gold_facts": ["performance", "range", "build quality"],
+      "freshness_class": "medium",
+      "mode": "normal"
+    },
+    {
+      "query_id": "gq_037",
+      "query": "cách cấu hình Nginx load balancer",
+      "lang": "vi",
+      "intent": "howto_tutorial",
+      "relevant_urls": [
+        "https://nginx.org/en/docs/http/load_balancing.html",
+        "https://www.digitalocean.com/community/tutorials/how-to-set-up-nginx-load-balancing"
+      ],
+      "gold_answer": "Cấu hình upstream block và proxy_pass để load balance.",
+      "gold_facts": ["upstream block", "proxy_pass"],
+      "freshness_class": "slow",
+      "mode": "normal"
+    },
+    {
+      "query_id": "gq_038",
+      "query": "giá DigitalOcean droplet",
+      "lang": "vi",
+      "intent": "pricing_lookup",
+      "relevant_urls": [
+        "https://www.digitalocean.com/pricing/",
+        "https://www.digitalocean.com/products/droplets/"
+      ],
+      "gold_answer": "DigitalOcean droplet bắt đầu từ $4/tháng cho 512MB RAM.",
+      "gold_facts": ["$4/month", "512MB RAM"],
+      "freshness_class": "high",
+      "mode": "normal"
+    },
+    {
+      "query_id": "gq_039",
+      "query": "cách dùng Prometheus để monitoring",
+      "lang": "vi",
+      "intent": "howto_tutorial",
+      "relevant_urls": [
+        "https://prometheus.io/docs/introduction/overview/",
+        "https://prometheus.io/docs/prometheus/latest/getting_started/"
+      ],
+      "gold_answer": "Cài Prometheus, cấu hình prometheus.yml, và chạy prometheus.",
+      "gold_facts": ["prometheus.yml", "prometheus"],
+      "freshness_class": "slow",
+      "mode": "normal"
+    },
+    {
+      "query_id": "gq_040",
+      "query": "so sánh Docker và Podman",
+      "lang": "vi",
+      "intent": "comparison",
+      "relevant_urls": [
+        "https://docs.docker.com/",
+        "https://podman.io/"
+      ],
+      "gold_answer": "Docker có ecosystem lớn hơn, Podman rootless và daemonless.",
+      "gold_facts": ["ecosystem", "rootless", "daemonless"],
+      "freshness_class": "medium",
+      "mode": "normal"
+    },
+    {
+      "query_id": "gq_041",
+      "query": "cách cài đặt Grafana trên Ubuntu",
+      "lang": "vi",
+      "intent": "howto_tutorial",
+      "relevant_urls": [
+        "https://grafana.com/docs/grafana/latest/setup-grafana/installation/",
+        "https://ubuntu.com/server/docs/monitoring-grafana"
+      ],
+      "gold_answer": "Cài Grafana bằng apt install grafana và khởi động grafana-server.",
+      "gold_facts": ["apt install grafana", "grafana-server"],
+      "freshness_class": "slow",
+      "mode": "normal"
+    },
+    {
+      "query_id": "gq_042",
+      "query": "giá Linode VPS",
+      "lang": "vi",
+      "intent": "pricing_lookup",
+      "relevant_urls": [
+        "https://www.linode.com/pricing/",
+        "https://www.linode.com/products/"
+      ],
+      "gold_answer": "Linode VPS bắt đầu từ $5/tháng cho 1GB RAM.",
+      "gold_facts": ["$5/month", "1GB RAM"],
+      "freshness_class": "high",
+      "mode": "normal"
+    },
+    {
+      "query_id": "gq_043",
+      "query": "cách dùng GitHub Actions để deploy lên VPS",
+      "lang": "vi",
+      "intent": "howto_tutorial",
+      "relevant_urls": [
+        "https://docs.github.com/en/actions/deployment/deploying-to-your-cloud-provider",
+        "https://github.com/marketplace/actions/ssh-deploy"
+      ],
+      "gold_answer": "Tạo workflow YAML với SSH deploy action để deploy lên VPS.",
+      "gold_facts": ["workflow YAML", "SSH deploy action"],
+      "freshness_class": "slow",
+      "mode": "normal"
+    },
+    {
+      "query_id": "gq_044",
+      "query": "người dùng đánh giá AirPods Pro 2?",
+      "lang": "vi",
+      "intent": "product_opinion",
+      "relevant_urls": [
+        "https://www.reddit.com/r/airpods/",
+        "https://www.apple.com/airpods-pro/"
+      ],
+      "gold_answer": "Người dùng đánh giá cao chống ồn nhưng phàn nàn về pin.",
+      "gold_facts": ["noise cancellation", "battery"],
+      "freshness_class": "medium",
+      "mode": "normal"
+    },
+    {
+      "query_id": "gq_045",
+      "query": "cách cấu hình Docker Compose healthcheck",
+      "lang": "vi",
+      "intent": "howto_tutorial",
+      "relevant_urls": [
+        "https://docs.docker.com/compose/compose-file/05-services/#healthcheck",
+        "https://docs.docker.com/compose/compose-file/05-services/#healthcheck-test"
+      ],
+      "gold_answer": "Thêm healthcheck block vào service trong docker-compose.yml.",
+      "gold_facts": ["healthcheck block", "docker-compose.yml"],
+      "freshness_class": "slow",
+      "mode": "normal"
+    },
+    {
+      "query_id": "gq_046",
+      "query": "giá Vultr VPS",
+      "lang": "vi",
+      "intent": "pricing_lookup",
+      "relevant_urls": [
+        "https://www.vultr.com/pricing/",
+        "https://www.vultr.com/products/cloud-compute/"
+      ],
+      "gold_answer": "Vultr VPS bắt đầu từ $2.5/tháng cho 512MB RAM.",
+      "gold_facts": ["$2.5/month", "512MB RAM"],
+      "freshness_class": "high",
+      "mode": "normal"
+    },
+    {
+      "query_id": "gq_047",
+      "query": "cách dùng Kubernetes ingress",
+      "lang": "vi",
+      "intent": "howto_tutorial",
+      "relevant_urls": [
+        "https://kubernetes.io/docs/concepts/services-networking/ingress/",
+        "https://kubernetes.io/docs/tasks/access-application-cluster/ingress-minikube/"
+      ],
+      "gold_answer": "Tạo ingress resource với rules để route traffic đến services.",
+      "gold_facts": ["ingress resource", "rules"],
+      "freshness_class": "slow",
+      "mode": "normal"
+    },
+    {
+      "query_id": "gq_048",
+      "query": "so sánh Grafana và Datadog",
+      "lang": "vi",
+      "intent": "comparison",
+      "relevant_urls": [
+        "https://grafana.com/",
+        "https://www.datadoghq.com/"
+      ],
+      "gold_answer": "Grafana open-source và miễn phí, Datadog SaaS với nhiều tính năng hơn nhưng đắt hơn.",
+      "gold_facts": ["open-source", "SaaS", "pricing"],
+      "freshness_class": "medium",
+      "mode": "normal"
+    },
+    {
+      "query_id": "gq_049",
+      "query": "cách cài đặt Elasticsearch trên Ubuntu",
+      "lang": "vi",
+      "intent": "howto_tutorial",
+      "relevant_urls": [
+        "https://www.elastic.co/guide/en/elasticsearch/reference/current/install-elasticsearch.html",
+        "https://ubuntu.com/server/docs/databases-elasticsearch"
+      ],
+      "gold_answer": "Cài Elasticsearch bằng apt install elasticsearch và cấu hình elasticsearch.yml.",
+      "gold_facts": ["apt install elasticsearch", "elasticsearch.yml"],
+      "freshness_class": "slow",
+      "mode": "normal"
+    },
+    {
+      "query_id": "gq_050",
+      "query": "người dùng đánh giá Samsung Galaxy S25?",
+      "lang": "vi",
+      "intent": "product_opinion",
+      "relevant_urls": [
+        "https://www.reddit.com/r/samsung/",
+        "https://www.samsung.com/galaxy-s25/"
+      ],
+      "gold_answer": "Người dùng đánh giá cao camera và màn hình nhưng phàn nàn về giá.",
+      "gold_facts": ["camera", "display", "price"],
+      "freshness_class": "medium",
+      "mode": "normal"
+    }
+  ]
+}

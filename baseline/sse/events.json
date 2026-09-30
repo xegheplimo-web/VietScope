@@ -1,0 +1,29 @@
+{
+  "events": [
+    "answer",
+    "answer.delta",
+    "answer.final",
+    "citation",
+    "done",
+    "error",
+    "evidence",
+    "init",
+    "plan",
+    "planning",
+    "research.round",
+    "search.done",
+    "search.started",
+    "source",
+    "source.read",
+    "synthesizing",
+    "verified",
+    "verifying",
+    "warning"
+  ],
+  "legacy_to_canonical": {
+    "error": "warning",
+    "followup": "research.round",
+    "planning": "plan",
+    "verifying": "evidence"
+  }
+}

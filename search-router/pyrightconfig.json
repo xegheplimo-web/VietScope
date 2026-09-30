@@ -1,0 +1,14 @@
+{
+  "typeCheckingMode": "standard",
+  "pythonVersion": "3.12",
+  "include": ["."],
+  "exclude": [
+    "tests",
+    "eval",
+    "**/__pycache__",
+    "**/.pytest_cache",
+    "**/.venv",
+    "**/node_modules"
+  ],
+  "reportMissingImports": true
+}

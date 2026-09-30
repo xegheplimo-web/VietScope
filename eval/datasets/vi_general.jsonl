@@ -1,0 +1,15 @@
+{"query": "cách nấu phở bò ngon tại nhà", "expected_urls": ["vnexpress.net", "monngonmoingay.com", "cooky.vn", "https://www.youtube.com/"], "category": "vi_general", "region": "vn"}
+{"query": "giá xăng dầu hôm nay", "expected_urls": ["petrolimex.com.vn", "moit.gov.vn", "vnexpress.net", "cafef.vn"], "category": "vi_general", "region": "vn"}
+{"query": "thủ tục làm hộ chiếu Việt Nam", "expected_urls": ["xuatnhapcanh.gov.vn", "dichvucong.gov.vn", "luatvietnam.vn"], "category": "vi_general", "region": "vn"}
+{"query": "cách xem tỉ số bóng đá trực tiếp", "expected_urls": ["thethao247.vn", "vnexpress.net", "bongdaplus.vn"], "category": "vi_general", "region": "vn"}
+{"query": "đăng ký kinh doanh online tại nhà hướng dẫn", "expected_urls": ["dangkykinhdoanh.gov.vn", "luatduonggia.vn", "thuvienphapluat.vn"], "category": "vi_general", "region": "vn"}
+{"query": "top địa điểm du lịch Đà Nẵng", "expected_urls": ["danangfantasticity.com", "vnexpress.net", "dulich.dantri.com.vn"], "category": "vi_general", "region": "vn"}
+{"query": "lương tối thiểu vùng mới nhất", "expected_urls": ["thuvienphapluat.vn", "nld.com.vn", "cafef.vn"], "category": "vi_general", "region": "vn"}
+{"query": "cách tính bảo hiểm xã hội một lần", "expected_urls": ["baohiemxahoi.gov.vn", "thuvienphapluat.vn", "cafef.vn"], "category": "vi_general", "region": "vn"}
+{"query": "bệnh viện điều trị ung thư tốt nhất miền Bắc", "expected_urls": ["benhvienk.vn", "vinmec.com"], "category": "vi_general", "region": "vn"}
+{"query": "mẫu đơn xin việc mới nhất", "expected_urls": ["topcv.vn", "timviec365.vn", "vieclam24h.vn"], "category": "vi_general", "region": "vn"}
+{"query": "cách pha cà phê sữa đá ngon", "expected_urls": ["monngonmoingay.com", "cooky.vn", "youtube.com"], "category": "vi_general", "region": "vn"}
+{"query": "trường đại học tốt nhất Việt Nam xếp hạng", "expected_urls": ["vnexpress.net", "vietnamnet.vn", "topuniversities.com"], "category": "vi_general", "region": "vn"}
+{"query": "giải mã giấc mơ thấy rắn đánh con gì", "expected_urls": ["lichngaytot.com", "xemboi.vn", "xemtuong.net"], "category": "vi_general", "region": "vn"}
+{"query": "cách cài đặt Windows 11 bằng USB", "expected_urls": ["microsoft.com", "thegioididong.com", "quantrimang.com"], "category": "vi_general", "region": "vn"}
+{"query": "học tiếng Anh giao tiếp cho người mới bắt đầu", "expected_urls": ["elight.edu.vn", "talkfirst.vn", "britishcouncil.vn"], "category": "vi_general", "region": "vn"}

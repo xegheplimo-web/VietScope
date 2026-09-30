@@ -1,0 +1,14 @@
+{"query": "người dùng đánh giá VinFast VF8 thế nào", "expected_urls": ["otofun.net", "webtretho.com", "vnexpress.net", "youtube.com"], "category": "vn_community", "region": "vn", "expected_facts": ["VF8"]}
+{"query": "review iPhone 17 Pro thực tế người dùng Việt Nam", "expected_urls": ["genk.vn", "youtube.com", "facebook.com", "otofun.net"], "category": "vn_community", "region": "vn", "expected_facts": ["iPhone 17"]}
+{"query": "kinh nghiệm du lịch Đà Lạt tự túc chia sẻ", "expected_urls": ["webtretho.com", "vnexpress.net", "tripadvisor.com"], "category": "vn_community", "region": "vn", "expected_facts": ["Đà Lạt"]}
+{"query": "đánh giá điện thoại Xiaomi 15 có nên mua", "expected_urls": ["tinhte.vn", "genk.vn", "youtube.com"], "category": "vn_community", "region": "vn"}
+{"query": "kinh nghiệm mua nhà lần đầu nên lưu ý gì", "expected_urls": ["webtretho.com", "vnexpress.net", "batdongsan.com.vn", "facebook.com"], "category": "vn_community", "region": "vn"}
+{"query": "so sánh sống ở Hà Nội hay Sài Gòn tốt hơn", "expected_urls": ["webtretho.com", "vnexpress.net", "reddit.com"], "category": "vn_community", "region": "vn"}
+{"query": "review quán ăn ngon quận 3 thực tế", "expected_urls": ["foody.vn", "tripadvisor.com", "facebook.com"], "category": "vn_community", "region": "vn"}
+{"query": "kinh nghiệm nuôi con nhỏ mẹ bỉm chia sẻ", "expected_urls": ["webtretho.com", "lamchame.com", "vnexpress.net"], "category": "vn_community", "region": "vn"}
+{"query": "đánh giá xe máy điện VinFast Klara thực tế", "expected_urls": ["otofun.net", "youtube.com", "facebook.com"], "category": "vn_community", "region": "vn"}
+{"query": "học lập trình tại nhà hiệu quả chia sẻ kinh nghiệm", "expected_urls": ["voz.vn", "daynhauhoc.com", "youtube.com"], "category": "vn_community", "region": "vn"}
+{"query": "review lương IT công ty outsourcing Việt Nam", "expected_urls": ["voz.vn", "itviec.com", "reddit.com"], "category": "vn_community", "region": "vn"}
+{"query": "kinh nghiệm đi Mỹ định cư du học chia sẻ", "expected_urls": ["webtretho.com", "vnexpress.net", "facebook.com"], "category": "vn_community", "region": "vn"}
+{"query": "nên mua ô tô chạy xăng hay điện 2026", "expected_urls": ["otofun.net", "vnexpress.net", "youtube.com"], "category": "vn_community", "region": "vn"}
+{"query": "đánh giá chất lượng sữa Vinamilk người dùng", "expected_urls": ["webtretho.com", "facebook.com", "vnexpress.net"], "category": "vn_community", "region": "vn"}

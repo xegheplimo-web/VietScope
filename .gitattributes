@@ -1,0 +1,22 @@
+# Line-ending policy — the repo is developed on Windows (core.autocrlf=true)
+# but consumed by Linux containers. A CRLF shebang kills `#!/bin/sh` inside
+# the image, so scripts and Dockerfiles are always stored/checked out as LF.
+* text=auto
+
+*.sh        text eol=lf
+*.bash      text eol=lf
+Dockerfile* text eol=lf
+*.yml       text eol=lf
+*.yaml      text eol=lf
+*.toml      text eol=lf
+
+# Lockfiles and generated artifacts: diffable but never line-ending-flipped
+uv.lock          text eol=lf
+requirements.txt text eol=lf
+sbom.cdx.json    text eol=lf
+
+# Binary assets
+*.png binary
+*.jpg binary
+*.ico binary
+*.db  binary

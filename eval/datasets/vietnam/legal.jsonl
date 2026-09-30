@@ -1,0 +1,12 @@
+{"query": "Nghị định 254/2026/NĐ-CP về hóa đơn điện tử nội dung", "expected_urls": ["vanban.chinhphu.vn", "vbpl.vn", "thuvienphapluat.vn", "chinhphu.vn"], "category": "vn_legal", "region": "vn", "expected_facts": ["254/2026", "hóa đơn điện tử"]}
+{"query": "hộ kinh doanh có phải dùng hóa đơn điện tử không", "expected_urls": ["thuvienphapluat.vn", "vbpl.vn", "luatvietnam.vn", "gdt.gov.vn"], "category": "vn_legal", "region": "vn", "expected_facts": ["hóa đơn điện tử"]}
+{"query": "Luật Đất đai 2024 điểm mới về quyền sử dụng đất", "expected_urls": ["vbpl.vn", "thuvienphapluat.vn", "luatvietnam.vn", "vanban.chinhphu.vn"], "category": "vn_legal", "region": "vn", "expected_facts": ["Đất đai"]}
+{"query": "mức phạt nồng độ cồn xe máy mới nhất 2026", "expected_urls": ["thuvienphapluat.vn", "luatvietnam.vn", "vanban.chinhphu.vn", "csgt.vn"], "category": "vn_legal", "region": "vn", "expected_facts": ["nồng độ cồn"]}
+{"query": "thừa kế không có di chúc chia theo pháp luật thế nào", "expected_urls": ["thuvienphapluat.vn", "luatvietnam.vn", "vbpl.vn"], "category": "vn_legal", "region": "vn"}
+{"query": "thủ tục ly hôn đơn phương thời gian bao lâu", "expected_urls": ["thuvienphapluat.vn", "luatvietnam.vn", "moj.gov.vn"], "category": "vn_legal", "region": "vn"}
+{"query": "mức lương tối thiểu vùng 2026 mới nhất", "expected_urls": ["vanban.chinhphu.vn", "molisa.gov.vn", "thuvienphapluat.vn", "luatvietnam.vn"], "category": "vn_legal", "region": "vn", "time_sensitive": true}
+{"query": "quyền lợi bảo hiểm thất nghiệp điều kiện hưởng", "expected_urls": ["vanban.chinhphu.vn", "baohiemxahoi.gov.vn", "thuvienphapluat.vn"], "category": "vn_legal", "region": "vn"}
+{"query": "luật cư trú 2020 tạm trú thường trú thay đổi gì", "expected_urls": ["vbpl.vn", "thuvienphapluat.vn", "luatvietnam.vn"], "category": "vn_legal", "region": "vn"}
+{"query": "điều kiện nhập quốc tịch Việt Nam cho người nước ngoài", "expected_urls": ["thuvienphapluat.vn", "moj.gov.vn", "luatvietnam.vn"], "category": "vn_legal", "region": "vn"}
+{"query": "phí trước bạ nhà đất 2026 tính thế nào", "expected_urls": ["thuvienphapluat.vn", "gdt.gov.vn", "vanban.chinhphu.vn"], "category": "vn_legal", "region": "vn"}
+{"query": "tuổi nghỉ hưu năm 2026 nam nữ theo luật mới", "expected_urls": ["vanban.chinhphu.vn", "molisa.gov.vn", "thuvienphapluat.vn", "baohiemxahoi.gov.vn"], "category": "vn_legal", "region": "vn"}

@@ -1,0 +1,23 @@
+[
+  {
+    "description": "Web passage dense + sparse vectors (BGE-M3)",
+    "distance": "Cosine",
+    "name": "web_passages_v1",
+    "sparse_enabled": true,
+    "vector_size": 1024
+  },
+  {
+    "description": "Web image embeddings (CLIP/SigLIP)",
+    "distance": "Cosine",
+    "name": "web_images_v1",
+    "sparse_enabled": false,
+    "vector_size": 768
+  },
+  {
+    "description": "User document embeddings (tenant-isolated)",
+    "distance": "Cosine",
+    "name": "user_documents_v1",
+    "sparse_enabled": true,
+    "vector_size": 1024
+  }
+]

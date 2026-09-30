@@ -1,0 +1,86 @@
+{
+  "description": "Search result with scoring.",
+  "properties": {
+    "authority_score": {
+      "default": 0.0,
+      "title": "Authority Score",
+      "type": "number"
+    },
+    "content": {
+      "default": "",
+      "title": "Content",
+      "type": "string"
+    },
+    "corroboration_score": {
+      "default": 0.0,
+      "title": "Corroboration Score",
+      "type": "number"
+    },
+    "description": {
+      "title": "Description",
+      "type": "string"
+    },
+    "domain": {
+      "title": "Domain",
+      "type": "string"
+    },
+    "engine": {
+      "default": "",
+      "title": "Engine",
+      "type": "string"
+    },
+    "freshness_score": {
+      "default": 0.0,
+      "title": "Freshness Score",
+      "type": "number"
+    },
+    "published_at": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Published At"
+    },
+    "query_match_score": {
+      "default": 0.0,
+      "title": "Query Match Score",
+      "type": "number"
+    },
+    "relevance_score": {
+      "default": 0.0,
+      "title": "Relevance Score",
+      "type": "number"
+    },
+    "score": {
+      "default": 0.0,
+      "title": "Score",
+      "type": "number"
+    },
+    "source_id": {
+      "title": "Source Id",
+      "type": "string"
+    },
+    "title": {
+      "title": "Title",
+      "type": "string"
+    },
+    "url": {
+      "title": "Url",
+      "type": "string"
+    }
+  },
+  "required": [
+    "source_id",
+    "url",
+    "title",
+    "description",
+    "domain"
+  ],
+  "title": "SourceResult",
+  "type": "object"
+}

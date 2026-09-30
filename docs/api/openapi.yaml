@@ -1,0 +1,1502 @@
+openapi: 3.0.3
+info:
+  title: VietScope Search API
+  version: "3.0.0"
+  description: |
+    Public `/v1/*` surface of VietScope (search-router, FastAPI :8888).
+
+    Evidence-driven search/answer/verify API for external clients (Hermes,
+    Vane, third parties). Auth is `Authorization: Bearer <key>` with
+    `dsa_live_…` / `dsa_test_…` keys; disabled entirely when the deployment
+    sets `API_AUTH_ENABLED=false` (local/dev default).
+
+    Source of truth: `search-router/api/v1.py`, `search-router/models.py`,
+    `search-router/security/apikeys.py`.
+
+servers:
+  - url: http://localhost:8888
+    description: Local Docker stack
+  - url: https://search.duyai.app
+    description: Production (Nginx proxies /v1/* only)
+
+security:
+  - BearerAuth: []
+
+tags:
+  - name: search
+    description: Query endpoints
+  - name: evidence
+    description: Research, verification, reading
+  - name: meta
+    description: Health, capabilities, providers
+  - name: openai
+    description: OpenAI-compatible gateway (Open WebUI / SDK clients)
+
+paths:
+  /v1/search:
+    post:
+      tags: [search]
+      operationId: search
+      summary: Unified search — raw results, or the research pipeline when `mode` is set
+      description: |
+        Without `mode`: raw multi-provider search (SearXNG primary, DDGS
+        fallback on low recall) returning `results` + `understanding`.
+
+        With `mode` (`fast` | `balanced` | `deep`, aliases
+        `quick`/`normal`/`auto`/`research`): runs the full research pipeline —
+        LLM query planning, parallel SearXNG, RRF fusion, AI reranking,
+        Firecrawl scraping, passage reranking, gap-driven follow-ups,
+        synthesis, claim verification — plus the hybrid index lane
+        (OpenSearch BM25 + Qdrant dense → RRF) when
+        `HYBRID_RETRIEVAL_ENABLED=true`. The response adds `answer`,
+        `sources`, `search` stats, `verification`, `timings`
+        (`timings.hybrid` present when the hybrid lane ran) while keeping
+        `results` + `understanding` as compatibility keys.
+      security:
+        - BearerAuth: ["search:read"]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SearchRequest"
+      responses:
+        "200":
+          description: Search results (raw or research-pipeline shape)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SearchResponse"
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "422": { $ref: "#/components/responses/ValidationError" }
+        "429": { $ref: "#/components/responses/RateLimited" }
+        "503": { $ref: "#/components/responses/AuthBackendDown" }
+
+  /v1/answer:
+    post:
+      tags: [search]
+      operationId: answer
+      summary: Retrieval + evidence + synthesis + citation validation
+      description: |
+        Runs the research pipeline and returns an answer with sources,
+        conflicts, coverage, `verified` (every extracted claim passed
+        verification) and timings. Set `stream: true` for a
+        `text/event-stream` response — see `docs/api/README.md` for the SSE
+        event protocol (`init` → `source` → `answer.delta` → `citation` →
+        `done`; `warning` on pipeline error).
+      security:
+        - BearerAuth: ["answer:use"]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SearchRequest"
+      responses:
+        "200":
+          description: Answer object, or SSE stream when `stream=true`
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AnswerResponse"
+            text/event-stream:
+              schema:
+                type: string
+                description: |
+                  SSE events: `init` `{query, query_id, mode}` ·
+                  `source` `{title, url, score, domain}` ×N ·
+                  `answer.delta` `{text}` ×N (≈600-char chunks) ·
+                  `citation` `{claim, verified, evidence_count}` ×N
+                  (only when `citations=true`) ·
+                  `done` `{query_id, coverage, verified, timings}`.
+                  `init`/`done` also carry `session_id`, `resolved_query`,
+                  `followup_resolved` when conversation context applies.
+                  On pipeline error: `warning` `{message}` then
+                  `done` `{query_id, verified: false}`.
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "422": { $ref: "#/components/responses/ValidationError" }
+        "429": { $ref: "#/components/responses/RateLimited" }
+        "503": { $ref: "#/components/responses/AuthBackendDown" }
+
+  /v1/research:
+    post:
+      tags: [evidence]
+      operationId: research
+      summary: Multi-hop research → EvidencePack
+      description: |
+        Decomposes the query into sub-queries (`max_hops`), searches each,
+        dedupes, ranks, fetches top pages, then synthesizes an answer and
+        verifies its claims. Returns a full `EvidencePack`.
+      security:
+        - BearerAuth: ["research:use"]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ResearchRequest"
+      responses:
+        "200":
+          description: Evidence pack
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/EvidencePack"
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "422": { $ref: "#/components/responses/ValidationError" }
+        "429": { $ref: "#/components/responses/RateLimited" }
+        "503": { $ref: "#/components/responses/AuthBackendDown" }
+
+  /v1/research/stream:
+    post:
+      tags: [evidence]
+      operationId: researchStream
+      summary: Multi-hop research streamed as SSE progress events
+      description: |
+        Same pipeline as `POST /v1/research` but streams progress.
+        Orchestrator progress events (`planning`, `searching`, `fetching`,
+        `fetched`, `followup`) are forwarded verbatim; `planning`,
+        `followup`, `verifying` and `error` are additionally duplicated
+        under canonical aliases (`plan`, `research.round`, `evidence`,
+        `warning`). Terminal sequence: `verifying` → `evidence` →
+        `source`×N → `answer.delta`×N → `answer` (with `pack`) → `done`.
+      security:
+        - BearerAuth: ["research:use"]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ResearchRequest"
+      responses:
+        "200":
+          description: SSE stream
+          content:
+            text/event-stream:
+              schema:
+                type: string
+                description: |
+                  `init` `{query, mode}` ·
+                  `planning`/`plan` `{query, mode, max_hops, sub_queries,
+                  intent, freshness_required, budget}` ·
+                  `searching` `{query, providers, freshness}` (per sub-query) ·
+                  `fetching` `{to_fetch, total_sources}` ·
+                  `fetched` `{fetched, failed}` ·
+                  `followup`/`research.round` `{round, query, reason}` ·
+                  `verifying` `{claims, sources}` ·
+                  `evidence` `{claims, sources}` ·
+                  `source` (Source object) ×N ·
+                  `answer.delta` `{text}` ×N ·
+                  `answer` `{pack: EvidencePack}` ·
+                  `done` `{claims, sources, coverage}`.
+                  On error: `error`/`warning` `{message}` and the stream ends.
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "422": { $ref: "#/components/responses/ValidationError" }
+        "429": { $ref: "#/components/responses/RateLimited" }
+        "503": { $ref: "#/components/responses/AuthBackendDown" }
+
+  /v1/verify:
+    post:
+      tags: [evidence]
+      operationId: verify
+      summary: Verify claims against evidence clusters / sources
+      description: |
+        Claim strings are converted to `Claim` objects (`c1…cN` with
+        extracted keywords) and verified against the supplied clusters and
+        sources. `max_age_days` enables freshness-aware verdicts
+        (`outdated` when only stale sources support a claim).
+      security:
+        - BearerAuth: ["verify:use"]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/VerifyRequest"
+      responses:
+        "200":
+          description: Per-claim verification verdicts
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/ClaimVerification"
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "422": { $ref: "#/components/responses/ValidationError" }
+        "429": { $ref: "#/components/responses/RateLimited" }
+        "503": { $ref: "#/components/responses/AuthBackendDown" }
+
+  /v1/read:
+    post:
+      tags: [evidence]
+      operationId: read
+      summary: Fetch a URL and return chunked, offset-tracked passages
+      description: |
+        SSRF guard first (`security/ssrf.py` — localhost, private IPs,
+        link-local, `host.docker.internal`, non-http(s) schemes → 422),
+        then Firecrawl scrape → `Source` → passages chunked with
+        `chunk_size`/`chunk_overlap`.
+      security:
+        - BearerAuth: ["read:use"]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ReadRequest"
+      responses:
+        "200":
+          description: Page title + passages
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ReadResponse"
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "422":
+          description: Validation error or SSRF-blocked URL
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HTTPValidationError"
+              examples:
+                validation:
+                  $ref: "#/components/examples/ValidationErrorExample"
+                ssrf:
+                  summary: SSRF-blocked URL
+                  value:
+                    detail: "URL blocked by SSRF policy: private/loopback address"
+        "429": { $ref: "#/components/responses/RateLimited" }
+        "503": { $ref: "#/components/responses/AuthBackendDown" }
+
+  /v1/evidence:
+    post:
+      tags: [evidence]
+      operationId: evidence
+      summary: Structured sources → bounded-parallel guarded reads → reranked cited passages
+      description: |
+        Accepts the ``search`` result contract (``source_id``, ``url``,
+        ``canonical_url``, ``title``, ``domain``, ``published_at``,
+        ``search_provider``, ``score`` — or bare URL strings), dedupes on
+        canonical identity, SSRF-checks every URL, reads them
+        bounded-parallel through the tiered reader (``pipeline.reader``
+        → ``crawler.netguard`` on every hop), then chunks and reranks via
+        ``pipeline.passage_reranker``. Per-source failures return error
+        items rather than failing the batch. Every item echoes
+        ``source_id``/provenance and a ``passage_id`` of
+        ``{source_id}:p{NNN}`` so citations map claim → passage →
+        source → URL.
+      security:
+        - BearerAuth: ["read:use"]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/EvidenceRequest"
+      responses:
+        "200":
+          description: Reranked evidence passages in citation form
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/EvidenceResponse"
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "422": { $ref: "#/components/responses/ValidationError" }
+        "429": { $ref: "#/components/responses/RateLimited" }
+        "503": { $ref: "#/components/responses/AuthBackendDown" }
+
+  /v1/news:
+    post:
+      tags: [search]
+      operationId: news
+      summary: News search with realtime freshness
+      description: |
+        Forces the `news` search category and runs a `fast`-budget search
+        round through the orchestrator.
+      security:
+        - BearerAuth: ["news:use"]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SearchRequest"
+      responses:
+        "200":
+          description: News results
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/NewsResponse"
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "422": { $ref: "#/components/responses/ValidationError" }
+        "429": { $ref: "#/components/responses/RateLimited" }
+        "503": { $ref: "#/components/responses/AuthBackendDown" }
+
+  /v1/images:
+    post:
+      tags: [search]
+      operationId: images
+      summary: Image search — own corpus first, live web backfill
+      description: |
+        Qdrant image collection (when `QDRANT_IMAGES_ENABLED=true`) supplies
+        corpus hits (`source: corpus`); a thin or disabled corpus falls
+        through to the live image lane (SearXNG `images` category, DDGS
+        backfill — `source: searxng` | `ddgs`), deduped by `src_url` /
+        `page_url`. A corpus failure degrades to the live lane instead of
+        erroring. When neither lane returns anything the response is an
+        empty result set with a `note` field (HTTP 200).
+      security:
+        - BearerAuth: ["images:use"]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SearchRequest"
+      responses:
+        "200":
+          description: Image hits (or empty set + `note` when no lane answered)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ImagesResponse"
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "422": { $ref: "#/components/responses/ValidationError" }
+        "429": { $ref: "#/components/responses/RateLimited" }
+        "503": { $ref: "#/components/responses/AuthBackendDown" }
+
+  /v1/business/search:
+    post:
+      tags: [search]
+      operationId: businessSearch
+      summary: Local business search by geo location
+      description: |
+        Anchor → PostGIS → OSM Overpass → web-extract. `lat`/`lon` may both
+        be omitted: the anchor is then resolved from the query text (P6
+        `loc:` entity → Nominatim geocode, else the phrase after
+        `gần|near|ở|tại|quanh|around`) and echoed back in `anchor`. When no
+        anchor can be resolved the geo lanes are skipped and only
+        web-extract runs. `provider` lists the lanes that contributed
+        results joined by `+` (`geo`, `osm`, `web`; e.g. `geo+osm+web`), or
+        `none`.
+      security:
+        - BearerAuth: ["business:use"]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/BusinessSearchRequest"
+      responses:
+        "200":
+          description: Matching businesses + evidence URLs
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/BusinessSearchResponse"
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "422": { $ref: "#/components/responses/ValidationError" }
+        "429": { $ref: "#/components/responses/RateLimited" }
+        "503": { $ref: "#/components/responses/AuthBackendDown" }
+
+  /v1/health:
+    get:
+      tags: [meta]
+      operationId: health
+      summary: Service health
+      description: |
+        Public minimal shape `{status, version}`. With a valid key holding
+        `admin:debug` (or when `API_AUTH_ENABLED=false`), also returns
+        `service`, `llm`, and per-service probes
+        (`searxng`, `firecrawl`, `opensearch`/`qdrant`/`embedding`/`reranker`
+        when enabled). Probes use short timeouts — a down dependency marks
+        the service `down`/`degraded`, never hangs.
+      security: []   # public; Bearer optional to unlock detail
+      responses:
+        "200":
+          description: Health status (`degraded` if any probed service is down)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HealthResponse"
+
+  /v1/capabilities:
+    get:
+      tags: [meta]
+      operationId: capabilities
+      summary: Modes, providers, and feature flags for client discovery
+      security: []   # public
+      responses:
+        "200":
+          description: Capabilities
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CapabilitiesResponse"
+
+  /v1/auth/check:
+    get:
+      tags: [meta]
+      operationId: authCheck
+      summary: Credential self-verification probe
+      description: |
+        Always public — the response body IS the verdict, so this endpoint
+        never returns 401/403. Send the Bearer key a client intends to use
+        (e.g. the MCP startup script probing `SEARCH_HUB_ROUTER_KEY`)
+        and read back whether it resolves to a live key plus its scopes.
+        `auth_enabled` reports `API_AUTH_ENABLED` so dev deployments can
+        skip verification entirely.
+      security: []   # public; Bearer optional — its validity is the answer
+      responses:
+        "200":
+          description: Probe verdict
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AuthCheckResponse"
+
+  /v1/providers:
+    get:
+      tags: [meta]
+      operationId: providers
+      summary: Provider status list
+      description: |
+        `searxng`/`firecrawl` report `ok` or `unreachable`; `github`
+        reports `configured` or `unconfigured` (based on `GITHUB_TOKEN`).
+        Non-public GET — requires `admin:debug` when auth is enabled.
+      security:
+        - BearerAuth: ["admin:debug"]
+      responses:
+        "200":
+          description: Provider statuses
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/ProviderStatus"
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "429": { $ref: "#/components/responses/RateLimited" }
+        "503": { $ref: "#/components/responses/AuthBackendDown" }
+
+  /v1/providers/health:
+    get:
+      tags: [meta]
+      operationId: providersHealth
+      summary: Provider health scores + circuit state
+      description: |
+        Federation-layer health: per-provider `health_score`, `status`
+        (`healthy|degraded|unhealthy`), `circuit`
+        (`closed|open|half_open`), rolling `success_rate`/`timeout_rate`/
+        `captcha_rate`, `p50_latency_ms`/`p95_latency_ms`, yield metrics,
+        `consecutive_failures`, `last_success`. `engines` reports the
+        per-engine SearXNG health (failure/429/captcha rates, disabled).
+      security:
+        - BearerAuth: ["admin:debug"]
+      responses:
+        "200":
+          description: Provider + engine health snapshots
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  providers:
+                    type: object
+                    additionalProperties: { type: object }
+                  engines:
+                    type: object
+                    additionalProperties: { type: object }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "429": { $ref: "#/components/responses/RateLimited" }
+        "503": { $ref: "#/components/responses/AuthBackendDown" }
+
+  /v1/models:
+    get:
+      tags: [openai]
+      operationId: listModels
+      summary: OpenAI-compatible model list
+      description: |
+        Advertised model ids come from `OPENAI_MODELS` (default
+        `duyai-search`). All ids route to the same Search-Hub research
+        pipeline; the list exists so OpenAI-compatible clients can do
+        model discovery.
+      security:
+        - BearerAuth: ["chat:use"]
+      responses:
+        "200":
+          description: OpenAI `list` of `model` objects
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  object: { type: string, enum: ["list"] }
+                  data:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        id: { type: string }
+                        object: { type: string, enum: ["model"] }
+                        created: { type: integer }
+                        owned_by: { type: string }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "429": { $ref: "#/components/responses/RateLimited" }
+        "503": { $ref: "#/components/responses/AuthBackendDown" }
+
+  /v1/chat/completions:
+    post:
+      tags: [openai]
+      operationId: chatCompletions
+      summary: OpenAI-compatible chat completion over the research pipeline
+      description: |
+        Thin gateway over `run_research` — the same engine `/v1/answer`
+        runs. The last `user` message becomes the query; all prior turns
+        (including `system`, which is context-only — the pipeline has no
+        system-prompt channel) feed follow-up resolution.
+
+        Parameter policy: `max_tokens`/`max_completion_tokens` bound the
+        content (~4 chars/token → `finish_reason: "length"`), `stop`
+        truncates post-hoc. `temperature`, `top_p`, `seed`, penalties,
+        `user`, `tools`, `tool_choice` are accepted and ignored — `tools`
+        is tolerated because Open WebUI's default builtin-tools capability
+        sends a non-empty array on every request. Rejected with
+        `400 unsupported_parameter`: forced `tool_choice` (`"required"` or
+        a specific function), non-text `response_format`, and `n > 1`.
+
+        Errors on this surface — auth, validation, upstream — always
+        return the OpenAI `{"error": {message, type, param, code}}`
+        shape. `stream: true` emits `chat.completion.chunk` SSE frames
+        terminated by `data: [DONE]`; a client disconnect cancels the
+        pipeline run. `OPENAI_TIMEOUT_S` bounds the whole request in both
+        modes.
+      security:
+        - BearerAuth: ["chat:use"]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [messages]
+              properties:
+                model: { type: string, default: duyai-search }
+                messages:
+                  type: array
+                  items:
+                    type: object
+                    required: [role, content]
+                    properties:
+                      role: { type: string, enum: [system, user, assistant] }
+                      content:
+                        description: string or OpenAI content-part list
+                stream: { type: boolean, default: false }
+                max_tokens: { type: integer, minimum: 1 }
+                max_completion_tokens: { type: integer, minimum: 1 }
+                stop: { description: "string or array of strings" }
+                temperature: { type: number, description: "accepted, ignored" }
+                top_p: { type: number, description: "accepted, ignored" }
+                seed: { type: integer, description: "accepted, ignored" }
+                n: { type: integer, description: "only 1 supported" }
+                tools: { type: array, description: "accepted, ignored (Open WebUI sends it by default)" }
+      responses:
+        "200":
+          description: |
+            `chat.completion` (non-stream) or `chat.completion.chunk` SSE
+            stream. Human-readable citations are embedded in the assistant
+            content (`**Sources:**` footer); a `search_hub` extension field
+            carries structured `citations`/`verification`/`timings`/
+            `confidence` for clients that know it.
+          content:
+            application/json:
+              schema:
+                type: object
+            text/event-stream:
+              schema: { type: string }
+        "400":
+          description: OpenAI-shaped validation error
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: object
+                    properties:
+                      message: { type: string }
+                      type: { type: string }
+                      param: { type: [string, "null"] }
+                      code: { type: [string, "null"] }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404":
+          description: Unknown model (`model_not_found`)
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: object
+        "429": { $ref: "#/components/responses/RateLimited" }
+        "503": { $ref: "#/components/responses/AuthBackendDown" }
+        "504":
+          description: Pipeline exceeded `OPENAI_TIMEOUT_S`
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: object
+
+components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      description: |
+        API key — `dsa_live_<32 urlsafe chars>` or `dsa_test_<32 urlsafe
+        chars>`. Issued out-of-band via `search-router/manage_keys.py`.
+        Scope names shown in brackets per-operation (e.g.
+        `["search:read"]`) document the required entry in the key's
+        `scopes` list; `*` covers all scopes, `admin:*` covers admin only.
+
+  schemas:
+    SearchRequest:
+      type: object
+      required: [query]
+      properties:
+        query:
+          type: string
+          minLength: 1
+          maxLength: 2000
+        type:
+          type: string
+          enum: [web, news, image, video]
+          default: web
+          description: |
+            Result lane — `web` (general), `news`, `image` (SearXNG images;
+            rows carry `thumbnail`), `video` (SearXNG videos).
+        max_results:
+          type: integer
+          minimum: 1
+          maximum: 50
+          default: 10
+        mode:
+          type: string
+          enum: [fast, balanced, deep, quick, normal, auto, research]
+          nullable: true
+          default: null
+          description: |
+            Set to run the research pipeline. Aliases resolve as
+            `quick`→`fast`, `normal`/`auto`→`balanced`, `research`→`deep`.
+        language:
+          type: string
+          maxLength: 8
+          nullable: true
+        freshness:
+          type: string
+          enum: [any, day, week, month]
+          nullable: true
+        citations:
+          type: boolean
+          default: true
+        session_id:
+          type: string
+          maxLength: 64
+          pattern: "^[A-Za-z0-9_-]+$"
+          nullable: true
+          description: |
+            Conversation session key (P4). On the research lanes the stored
+            state loads from Redis `convctx:{owner_hash}:{session_id}` where
+            `owner_hash` is a truncated sha256 of the authenticated API key —
+            a session is only visible to the key that owns it (`anonymous`
+            when auth is disabled). A short/anaphoric follow-up is rewritten
+            to a standalone query before the pipeline runs. Echoed in the
+            response alongside `followup_resolved` and `resolved_query`.
+            Stateless alternative: `history`.
+        sources:
+          type: array
+          items: { type: string }
+          nullable: true
+          description: Lane/source preference hints (client compatibility field).
+        history:
+          type: array
+          items: { type: object }
+          nullable: true
+          description: |
+            Conversational context (client compatibility field). Stateless
+            `[role, text]` turns used for follow-up resolution; merged with
+            the `session_id` state when both are sent (stored state wins on
+            conflicting fields).
+        stream:
+          type: boolean
+          default: false
+          description: "`/v1/answer` only — switch to SSE."
+
+    ResearchRequest:
+      type: object
+      required: [query]
+      properties:
+        query:
+          type: string
+          minLength: 1
+          maxLength: 2000
+        mode:
+          type: string
+          enum: [fast, normal, deep]
+          default: fast
+        max_hops:
+          type: integer
+          minimum: 1
+          maximum: 4
+          nullable: true
+          default: null
+          description: "Sub-query decomposition depth; default per mode (fast=1, normal=2, deep=3)."
+
+    VerifyRequest:
+      type: object
+      properties:
+        claims:
+          type: array
+          items: { type: string }
+          default: []
+        clusters:
+          type: array
+          items:
+            $ref: "#/components/schemas/EvidenceCluster"
+          default: []
+        sources:
+          type: array
+          items:
+            $ref: "#/components/schemas/Source"
+          default: []
+        max_age_days:
+          type: integer
+          nullable: true
+          default: null
+
+    ReadRequest:
+      type: object
+      required: [url]
+      properties:
+        url:
+          type: string
+          minLength: 1
+          maxLength: 8192
+          format: uri
+        chunk_size:
+          type: integer
+          minimum: 1
+          maximum: 20000
+          default: 800
+        chunk_overlap:
+          type: integer
+          minimum: 0
+          maximum: 19999
+          default: 200
+          description: Must be smaller than `chunk_size` (422 otherwise).
+
+    BusinessSearchRequest:
+      type: object
+      required: [query]
+      description: |
+        `lat` and `lon` must be provided together (422 if only one is
+        set). Omit both to resolve the anchor from the query text.
+      properties:
+        query:
+          type: string
+          minLength: 1
+          maxLength: 2000
+        lat:
+          type: number
+          minimum: -90
+          maximum: 90
+          nullable: true
+          default: null
+        lon:
+          type: number
+          minimum: -180
+          maximum: 180
+          nullable: true
+          default: null
+        radius_km:
+          type: number
+          minimum: 0.1
+          maximum: 50
+          default: 2.0
+        category:
+          type: string
+          maxLength: 100
+          nullable: true
+          default: null
+        limit:
+          type: integer
+          minimum: 1
+          maximum: 100
+          default: 20
+
+    # ─── Response schemas ────────────────────────────────────────────────
+
+    QueryProfile:
+      type: object
+      description: Query-understanding output (`dataclasses.asdict(profile)`).
+      properties:
+        intent: { type: string, description: "current_fact | comparison | definition | howto | opinion" }
+        entities:
+          type: array
+          items: { type: string }
+        language: { type: string }
+        time_sensitive: { type: boolean }
+        freshness_required: { type: boolean }
+        max_age: { type: string, nullable: true }
+        preferred_sources:
+          type: array
+          items: { type: string }
+
+    RawResult:
+      type: object
+      properties:
+        url: { type: string }
+        title: { type: string }
+        description: { type: string, nullable: true }
+        published_at: { type: string, nullable: true }
+        engine: { type: string }
+        thumbnail:
+          type: string
+          description: |
+            Visual URL for the hit (`""` when none). For `type=image` this is
+            the image itself (`img_src`), falling back to the engine's
+            thumbnail; for `video` the preview frame.
+
+    SearchResponse:
+      type: object
+      description: |
+        Raw mode: `query`, `type`, `understanding`, `results`, `count`
+        (when zero results only `query`, `understanding`, `results` are
+        returned). Research mode (`mode` set): adds `mode`, `answer`,
+        `confidence`, `sources`, `search`, `verification`, `timings`, and
+        `citations` (when `citations=true`). Conversation context (P4):
+        `session_id` echoes with `followup_resolved` when provided;
+        `resolved_query` appears when a follow-up was actually rewritten.
+        `history`-only requests surface `followup_resolved`/`resolved_query`
+        only on an actual rewrite (standalone questions stay zero-diff).
+      properties:
+        query: { type: string }
+        type: { type: string }
+        mode: { type: string, nullable: true }
+        session_id: { type: string, nullable: true }
+        resolved_query:
+          type: string
+          description: Standalone query actually executed (P4 follow-up resolution).
+        followup_resolved:
+          type: boolean
+          description: "True when the query was rewritten from conversation context."
+        understanding:
+          $ref: "#/components/schemas/QueryProfile"
+        results:
+          type: array
+          items:
+            $ref: "#/components/schemas/RawResult"
+        count: { type: integer }
+        answer: { type: string }
+        confidence: { type: number }
+        sources:
+          type: array
+          items:
+            $ref: "#/components/schemas/RankedSource"
+        search:
+          $ref: "#/components/schemas/SearchStats"
+        verification:
+          $ref: "#/components/schemas/VerificationStats"
+        timings:
+          $ref: "#/components/schemas/Timings"
+        citations:
+          type: array
+          items:
+            $ref: "#/components/schemas/CitationFlag"
+
+    RankedSource:
+      type: object
+      properties:
+        title: { type: string }
+        url: { type: string }
+        score: { type: number }
+        domain: { type: string }
+
+    SearchStats:
+      type: object
+      properties:
+        generated_queries:
+          type: array
+          items: { type: string }
+        plan_source: { type: string }
+        raw_results: { type: integer }
+        unique_results: { type: integer }
+        pages_read: { type: integer }
+        followup_rounds: { type: integer }
+        passages: { type: integer }
+
+    VerificationStats:
+      type: object
+      properties:
+        claims_total: { type: integer }
+        claims_verified: { type: integer }
+        claims_removed: { type: integer }
+        all_removed: { type: boolean }
+
+    HybridTimings:
+      type: object
+      description: |
+        Present under `timings.hybrid` only when the hybrid index lane ran
+        (`/v1/search` with `mode` and `HYBRID_RETRIEVAL_ENABLED=true`).
+      properties:
+        os_hits: { type: integer, description: "OpenSearch BM25 hits" }
+        qdrant_hits: { type: integer, description: "Qdrant dense hits" }
+        fused: { type: integer, description: "Candidates after RRF fusion" }
+        degraded: { type: boolean, description: "A lane failed or returned nothing usable" }
+        reason:
+          type: string
+          description: "Degradation reason (e.g. `lane_error`, `retriever_error`, `embedding_failed`)"
+        merged: { type: integer, description: "Fused candidates merged into the rerank pool" }
+
+    Timings:
+      type: object
+      description: |
+        Per-stage seconds: `analyze`, `plan`, `search`, `rerank`, `scrape`,
+        `extract_evidence`, `check_gaps`, `synthesize`, `verify`, `total`
+        (follow-up rounds accumulate onto the stage keys).
+      properties:
+        total: { type: number }
+        hybrid:
+          $ref: "#/components/schemas/HybridTimings"
+      additionalProperties: true
+
+    CitationFlag:
+      type: object
+      properties:
+        claim: { type: string }
+        verified: { type: boolean }
+        evidence_count: { type: integer }
+
+    AnswerResponse:
+      type: object
+      properties:
+        query_id: { type: string, description: "`srch_<12 hex>`" }
+        answer: { type: string }
+        session_id: { type: string, nullable: true }
+        resolved_query:
+          type: string
+          description: Standalone query actually executed (P4 follow-up resolution).
+        followup_resolved:
+          type: boolean
+          description: "True when the query was rewritten from conversation context."
+        sources:
+          type: array
+          items:
+            $ref: "#/components/schemas/RankedSource"
+        conflicts:
+          type: array
+          items: { type: object }
+        coverage: { type: number }
+        verified:
+          type: boolean
+          description: "True when every extracted claim passed verification."
+        timings:
+          $ref: "#/components/schemas/Timings"
+        citations:
+          type: array
+          items:
+            $ref: "#/components/schemas/CitationFlag"
+          description: Present when `citations=true`.
+
+    NewsResult:
+      type: object
+      properties:
+        url: { type: string }
+        title: { type: string }
+        description: { type: string }
+        published_at: { type: string, nullable: true }
+
+    NewsResponse:
+      type: object
+      properties:
+        query: { type: string }
+        results:
+          type: array
+          items:
+            $ref: "#/components/schemas/NewsResult"
+        count: { type: integer }
+
+    ImageHit:
+      type: object
+      properties:
+        image_id: { type: string }
+        score: { type: number }
+        src_url: { type: string }
+        page_url: { type: string }
+        alt: { type: string }
+        caption: { type: string }
+        title: { type: string }
+        source:
+          type: string
+          enum: [corpus, searxng, ddgs]
+          description: Lane that produced the hit.
+
+    ImagesResponse:
+      type: object
+      properties:
+        query: { type: string }
+        results:
+          type: array
+          items:
+            $ref: "#/components/schemas/ImageHit"
+        count: { type: integer }
+        note:
+          type: string
+          description: "Present only when `results` is empty (corpus empty, live lane unavailable)."
+
+    ReadResponse:
+      type: object
+      properties:
+        url: { type: string }
+        title: { type: string }
+        error: { type: string, nullable: true }
+        passages:
+          type: array
+          items:
+            $ref: "#/components/schemas/Passage"
+
+    EvidenceRequest:
+      type: object
+      required: [sources, query]
+      properties:
+        sources:
+          type: array
+          minItems: 1
+          maxItems: 20
+          description: |
+            Structured search results (recommended — provenance is echoed
+            back on every evidence item) or bare URL strings. Hard
+            ceiling 20 — the Hermes contract sends at most 8 (normal) /
+            15 (deep research).
+          items:
+            oneOf:
+              - $ref: "#/components/schemas/EvidenceSource"
+              - { type: string, description: "bare URL" }
+        query: { type: string, minLength: 1, maxLength: 2000 }
+        max_passages: { type: integer, minimum: 1, maximum: 50, default: 5 }
+        max_per_source: { type: integer, minimum: 1, maximum: 10, default: 3 }
+        freshness:
+          type: string
+          enum: [realtime, high, normal, static]
+          default: normal
+          description: |
+            Reader page-cache policy. `realtime` bypasses the cache
+            entirely (fresh-content queries: gold price, FX, breaking
+            news); `high` 5-min TTL; `normal` 1-h TTL; `static` no expiry.
+
+    EvidenceSource:
+      type: object
+      required: [url]
+      description: The `search` result contract — provenance passes through.
+      properties:
+        url: { type: string, minLength: 1, maxLength: 8192 }
+        source_id: { type: string, nullable: true }
+        canonical_url: { type: string, nullable: true }
+        title: { type: string, nullable: true }
+        domain: { type: string, nullable: true }
+        published_at: { type: string, nullable: true }
+        search_provider: { type: string, nullable: true }
+        score: { type: number, nullable: true }
+
+    EvidenceResponse:
+      type: object
+      properties:
+        query: { type: string }
+        count: { type: integer }
+        elapsed_seconds: { type: number }
+        evidence:
+          type: array
+          items:
+            $ref: "#/components/schemas/EvidenceItem"
+
+    EvidenceItem:
+      type: object
+      description: |
+        Citation row — `passage_id` = `{source_id}:p{NNN}` maps
+        claim → passage → source → URL. `error` is set only on
+        per-source failures (SSRF-blocked, unreadable).
+      properties:
+        source_id: { type: string }
+        passage_id: { type: string }
+        url: { type: string }
+        canonical_url: { type: string }
+        title: { type: string }
+        domain: { type: string }
+        published_at: { type: string, nullable: true }
+        retrieved_at: { type: string }
+        text: { type: string }
+        quote: { type: string }
+        score: { type: number }
+        search_provider: { type: string }
+        content_provider: { type: string, description: "reader tier | ssrf_blocked | fetch_error" }
+        error: { type: string, nullable: true }
+
+    Passage:
+      type: object
+      properties:
+        passage_id: { type: string, description: "`<source_id>:p<N>`" }
+        source_id: { type: string, description: "`read:<url>` for /v1/read" }
+        text: { type: string }
+        quote_start: { type: integer }
+        quote_end: { type: integer }
+        retrieved_at: { type: string }
+        metadata:
+          type: object
+          properties:
+            url: { type: string }
+            title: { type: string }
+
+    Source:
+      type: object
+      required: [url]
+      properties:
+        source_id: { type: string, default: "" }
+        url: { type: string }
+        title: { type: string, default: "" }
+        domain: { type: string, default: "" }
+        description: { type: string, default: "" }
+        published_at: { type: string, nullable: true, default: null }
+        retrieved_at: { type: string }
+        content: { type: string, default: "" }
+        score: { type: number, default: 0.0 }
+        search_provider: { type: string, description: "searxng | ddgs | github | grep | …" }
+        content_provider: { type: string, description: "firecrawl | direct | none" }
+        content_length: { type: integer, default: 0 }
+        error: { type: string, nullable: true, default: null }
+        authority_type:
+          type: string
+          nullable: true
+          description: "official | government | research_paper | major_publication | vendor_website | specialist_blog | forum | reddit | unknown_seo_site"
+        authority_score: { type: number, nullable: true, description: "0.0–1.0" }
+        trust:
+          type: string
+          nullable: true
+          description: "high | medium | low | unverified"
+        trust_reasons:
+          type: array
+          items: { type: string }
+
+    EvidenceCluster:
+      type: object
+      required: [cluster_id]
+      properties:
+        cluster_id: { type: string }
+        sources:
+          type: array
+          items: { type: string }
+          description: Source identifiers in this cluster
+        is_independent: { type: boolean, default: true }
+        deduplication_method: { type: string, default: "" }
+
+    ClaimVerification:
+      type: object
+      properties:
+        claim_id: { type: string }
+        claim_text: { type: string }
+        status:
+          type: string
+          description: "supported | partially_supported | contradicted | insufficient_evidence | outdated | source_conflict"
+        evidence:
+          type: array
+          items: { type: string }
+        verdict: { type: string }
+        confidence: { type: number, description: "0.0–1.0" }
+        contradictions:
+          type: array
+          items: { type: string }
+        sources_conflict: { type: boolean }
+        timestamp: { type: string }
+
+    CitationV2:
+      type: object
+      properties:
+        claim_id: { type: string }
+        evidence:
+          type: array
+          items: { type: object }
+          description: "Passage-level evidence references (source_id, passage_id, url, quote_start/quote_end, retrieved_at)"
+        citation_text: { type: string }
+
+    SearchBudget:
+      type: object
+      properties:
+        max_queries: { type: integer }
+        max_results: { type: integer }
+        max_fetches: { type: integer }
+        max_tokens: { type: integer, nullable: true }
+        max_duration: { type: integer, nullable: true }
+        max_followups: { type: integer }
+        max_cost: { type: number, nullable: true }
+        cost_used: { type: number }
+        queries_used: { type: integer }
+        fetches_used: { type: integer }
+        followups_used: { type: integer }
+        tokens_used: { type: integer }
+        duration_used: { type: number }
+
+    EvidencePack:
+      type: object
+      properties:
+        answer: { type: string }
+        claims:
+          type: array
+          items:
+            $ref: "#/components/schemas/ClaimVerification"
+        citations:
+          type: array
+          items:
+            $ref: "#/components/schemas/CitationV2"
+        sources:
+          type: array
+          items:
+            $ref: "#/components/schemas/Source"
+        coverage: { type: number, description: "0.0–1.0" }
+        confidence: { type: number, description: "0.0–1.0" }
+        budget_used:
+          $ref: "#/components/schemas/SearchBudget"
+
+    BusinessEntity:
+      type: object
+      required: [name]
+      properties:
+        name: { type: string }
+        category: { type: string, default: "" }
+        address: { type: string, default: "" }
+        phone: { type: string, nullable: true }
+        hours: { type: string, nullable: true }
+        rating: { type: number, nullable: true, minimum: 0, maximum: 5 }
+        price_level: { type: string, nullable: true }
+        website: { type: string, nullable: true }
+        lat: { type: number, nullable: true }
+        lon: { type: number, nullable: true }
+        description: { type: string, default: "" }
+        source_url: { type: string, default: "" }
+
+    GeoAnchor:
+      type: object
+      description: The resolved geo anchor when `lat`/`lon` came from the query text.
+      required: [name, lat, lon]
+      properties:
+        name: { type: string }
+        lat: { type: number }
+        lon: { type: number }
+        display_name: { type: string, default: "" }
+        resolved_from:
+          type: string
+          enum: [entity, phrase]
+          default: entity
+          description: "`entity` — P6 `loc:` entity geocoded; `phrase` — text after a proximity marker geocoded"
+
+    BusinessSearchResponse:
+      type: object
+      properties:
+        query: { type: string }
+        lat:
+          type: number
+          nullable: true
+          description: Effective anchor latitude (request value or resolved); null when unresolved
+        lon:
+          type: number
+          nullable: true
+          description: Effective anchor longitude (request value or resolved); null when unresolved
+        radius_km: { type: number }
+        provider:
+          type: string
+          description: "Contributing lanes joined by `+` (`geo` PostGIS, `osm` Overpass, `web` web-extract), e.g. `geo+osm+web`; `none` when empty"
+        anchor:
+          nullable: true
+          allOf:
+            - $ref: "#/components/schemas/GeoAnchor"
+          description: Set only when the anchor was resolved from the query text; null when `lat`/`lon` were supplied
+        entities:
+          type: array
+          items:
+            $ref: "#/components/schemas/BusinessEntity"
+        evidence:
+          type: array
+          items: { type: string }
+          description: Entity source URLs
+        count: { type: integer }
+
+    ProviderStatus:
+      type: object
+      properties:
+        name: { type: string }
+        status: { type: string }
+        last_check: { type: string, nullable: true }
+
+    HealthResponse:
+      type: object
+      description: |
+        Minimal public shape: `status`, `version`. Detailed shape (auth off
+        or `admin:debug` key): adds `service`, `llm`, `services`.
+      properties:
+        status: { type: string, description: "ok | degraded" }
+        version: { type: string, example: "3.0.0" }
+        service: { type: string, example: "search-hub" }
+        llm: { type: string, description: "configured | not configured" }
+        services:
+          type: object
+          additionalProperties:
+            type: string
+            description: "ok | down"
+          example:
+            searxng: ok
+            firecrawl: ok
+            opensearch: ok
+            qdrant: ok
+            embedding: ok
+            reranker: ok
+
+    AuthCheckResponse:
+      type: object
+      properties:
+        authenticated:
+          type: boolean
+          description: A Bearer key was presented and resolved to a live key row
+        auth_enabled:
+          type: boolean
+          description: API_AUTH_ENABLED — false means dev mode, nothing to verify
+        tenant:
+          type: string
+          nullable: true
+          example: hermes
+        scopes:
+          type: array
+          items: { type: string }
+          example: ["read:use", "search:read"]
+
+    CapabilitiesResponse:
+      type: object
+      properties:
+        modes:
+          type: array
+          items:
+            type: string
+            enum: [fast, normal, deep]
+        providers:
+          type: array
+          items:
+            $ref: "#/components/schemas/ProviderStatus"
+        features:
+          type: object
+          description: |
+            Includes `endpoints` (per-endpoint availability flags),
+            `stream`, `aliases` (`research`→`deep`, `quick`→`fast`,
+            `auto`→`normal`), `auth` (`enabled`, `scheme`),
+            `verification.states` (6 verdict states),
+            `citation.passage_level`, `streaming.events`, and per-mode
+            budgets (`max_queries`, `max_fetches`, `max_followups`).
+
+    # ─── Errors ──────────────────────────────────────────────────────────
+
+    AuthError:
+      type: object
+      properties:
+        detail:
+          type: object
+          properties:
+            error: { type: string }
+            required: { type: string, description: "403 only — required scope" }
+            rpm: { type: integer, description: "429 rate_limit — key's rpm limit" }
+            quota: { type: integer, description: "429 quota — key's daily quota" }
+
+    HTTPValidationError:
+      type: object
+      properties:
+        detail:
+          description: "FastAPI validation error list, or a string for SSRF blocks"
+          oneOf:
+            - type: array
+              items:
+                type: object
+                properties:
+                  loc:
+                    type: array
+                    items: {}
+                  msg: { type: string }
+                  type: { type: string }
+            - type: string
+
+  responses:
+    Unauthorized:
+      description: "Missing/invalid/revoked API key — `WWW-Authenticate: Bearer` header set"
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/AuthError"
+          example:
+            detail: { error: missing_or_invalid_api_key }
+    Forbidden:
+      description: Key lacks the required scope
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/AuthError"
+          example:
+            detail: { error: insufficient_scope, required: research:use }
+    RateLimited:
+      description: Per-minute rate limit or daily quota exceeded
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/AuthError"
+          examples:
+            rpm:
+              value:
+                detail: { error: rate_limit_exceeded, rpm: 60 }
+            quota:
+              value:
+                detail: { error: daily_quota_exceeded, quota: 1000 }
+    AuthBackendDown:
+      description: Auth enabled but hub-postgres unreachable (fail-closed)
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/AuthError"
+          example:
+            detail: { error: auth_backend_unavailable }
+    ValidationError:
+      description: Request-body validation failed
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/HTTPValidationError"
+
+  examples:
+    ValidationErrorExample:
+      summary: Pydantic/FastAPI validation error
+      value:
+        detail:
+          - loc: [body, query]
+            msg: "Field required"
+            type: missing

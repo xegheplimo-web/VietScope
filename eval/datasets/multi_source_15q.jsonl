@@ -1,0 +1,15 @@
+{"query": "tin công nghệ mới nhất về trí tuệ nhân tạo 2026", "expected_urls": ["genk.vn", "techcrunch.com", "theverge.com", "vnexpress.net"], "category": "technical", "region": "vn"}
+{"query": "đánh giá Samsung Galaxy S25 Ultra chi tiết", "expected_urls": ["thegioididong.com", "gsmarena.com", "genk.vn", "techradar.com"], "category": "technical", "region": "vn"}
+{"query": "Rust vs Go so sánh hiệu năng lập trình", "expected_urls": ["rust-lang.org", "golang.org", "stackoverflow.com", "dev.to"], "category": "technical", "region": "global"}
+{"query": "cách phòng ngừa bệnh tim mạch hiệu quả", "expected_urls": ["vinmec.com", "who.int", "mayoclinic.org", "cdc.gov"], "category": "vi_general", "region": "global"}
+{"query": "triệu chứng và cách điều trị sốt xuất huyết", "expected_urls": ["moh.gov.vn", "who.int", "vinmec.com", "vnexpress.net"], "category": "vi_general", "region": "vn"}
+{"query": "lợi ích của chế độ ăn Địa Trung Hải với sức khỏe", "expected_urls": ["hsph.harvard.edu", "mayoclinic.org", "who.int", "health.harvard.edu"], "category": "vi_general", "region": "global"}
+{"query": "giá vàng hôm nay bao nhiêu một chỉ", "expected_urls": ["cafef.vn", "sggp.org.vn", "doji.vn", "vnexpress.net"], "category": "current_events", "region": "vn"}
+{"query": "lãi suất ngân hàng mới nhất tháng này", "expected_urls": ["cafef.vn", "vietcombank.com.vn", "markettimes.vn", "vnexpress.net"], "category": "current_events", "region": "vn"}
+{"query": "giá Bitcoin hôm nay bao nhiêu", "expected_urls": ["coindesk.com", "cointelegraph.com", "coinmarketcap.com", "cafef.vn"], "category": "current_events", "region": "vn"}
+{"query": "tỷ giá USD VND hôm nay", "expected_urls": ["vietcombank.com.vn", "cafef.vn", "bnews.vn", "vnexpress.net"], "category": "current_events", "region": "vn"}
+{"query": "lịch sử nhà Lý Việt Nam 1010 1225", "expected_urls": ["wikipedia.org", "baotanglichsu.vn", "nguoikesu.com", "khaocohoc.gov.vn"], "category": "vi_general", "region": "vn"}
+{"query": "chiến thắng Điện Biên Phủ 1954 ý nghĩa lịch sử", "expected_urls": ["wikipedia.org", "qdnd.vn", "cand.com.vn", "baotanglichsu.vn"], "category": "vi_general", "region": "vn"}
+{"query": "lịch sử 1000 năm Thăng Long Hà Nội", "expected_urls": ["wikipedia.org", "hanoimoi.vn", "hanoitv.vn", "baotanglichsu.vn"], "category": "vi_general", "region": "vn"}
+{"query": "so sánh iPhone 16 và Samsung Galaxy S25", "expected_urls": ["thegioididong.com", "gsmarena.com", "genk.vn", "theverge.com"], "category": "technical", "region": "vn"}
+{"query": "so sánh xe máy điện VinFast và Honda nên mua loại nào", "expected_urls": ["vnexpress.net", "auto5.vn", "vietnamnet.vn", "thethao247.vn"], "category": "technical", "region": "vn"}

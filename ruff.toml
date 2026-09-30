@@ -1,0 +1,57 @@
+# Ruff — first-party Python only (search-router, eval tooling).
+# Vendor trees are git submodules or upstream sources — never lint them.
+target-version = "py312"
+line-length = 100
+
+exclude = [
+    "firecrawl",
+    "searxng",
+    "**/.venv",
+    "**/node_modules",
+    "**/__pycache__",
+    "**/.pytest_cache",
+    "**/.ruff_cache",
+]
+
+[lint]
+select = [
+    "E",    # pycodestyle errors
+    "W",    # pycodestyle warnings
+    "F",    # pyflakes
+    "I",    # isort
+    "UP",   # pyupgrade
+    "B",    # bugbear
+    "BLE",  # blind except
+    "S",    # bandit
+    "C4",   # comprehension
+    "SIM",  # simplify
+]
+ignore = [
+    "BLE001",  # blind except is a deliberate degrade-by-design pattern here
+    "S110",    # try-except-pass — same rationale
+    "S101",    # assert usage (tests + guards)
+    "E501",    # line length is the formatter's job
+]
+
+[lint.per-file-ignores]
+"**/tests/**" = ["S", "B", "SIM"]
+"**/test_*.py" = ["S", "B", "SIM"]
+# str,Enum mixins predate this gate — StrEnum changes str(member) output, so
+# migration is a behavior change and out of scope for lint fixes.
+"search-router/models.py" = ["UP042"]
+"search-router/research_models/research_state.py" = ["UP042"]
+# arXiv Atom feed parsing: stdlib ET on a bounded, HTTPS-fetched feed from a
+# fixed upstream (export.arxiv.org), sliced to max_results — defusedxml would
+# be a new dependency for marginal hardening.
+"search-router/providers/arxiv.py" = ["S314"]
+# VN RSS/Atom feed parsing: same bounded HTTPS-feed rationale as arxiv.py.
+"search-router/providers/vn_rss.py" = ["S314"]
+# Bounded HTTPS fetch of Google News RSS — same rationale as vn_rss.
+"search-router/providers/vn_gnews.py" = ["S314"]
+# COPY-merge SQL is built from a fixed module-level column list (_STAGE_COLS)
+# — no user input reaches the f-string, so the bandit injection warning is a
+# false positive here.
+"search-router/ingestion/runner.py" = ["S608"]
+# Same false-positive class: parameterized queries with table/column names
+# assembled only from module-level constants and whitelists.
+"search-router/resolution/store.py" = ["S608"]

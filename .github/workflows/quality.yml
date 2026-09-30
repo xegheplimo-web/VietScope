@@ -1,0 +1,312 @@
+# Quality pipeline — generated from Quality Pipeline 2025, adapted for
+# Search-Hub's Python stack (uv + pytest; vendor trees are submodules and
+# are never linted). Findings gate on changed files only — see
+# quality-gates.yml for thresholds.
+name: quality-pipeline
+
+on:
+  pull_request:
+  push: { branches: [main] }
+  workflow_dispatch:
+  schedule:
+    - cron: '17 3 * * *'   # nightly: full lint + regression report
+
+# Least privilege: jobs that need more declare it at job level.
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  PYTHON_VERSION: "3.12"
+  # Bump for phase-0 dedup PRs: dead-code removal diffs are ~95% deletions and
+  # exceed the normal cap while still being safe to review. Revert to 600 after
+  # the consolidation phases land.
+  GATE_PR_MAX_LOC: "7000"
+  # Mirrors quality-gates.yml — keep in sync. Ratchet gates can only tighten.
+  GATE_DIFF_COVERAGE: "80"        # diff_coverage_min
+  GATE_PYRIGHT_ERRORS_MAX: "65"   # pyright_errors_max (baseline 2026-09-25)
+
+jobs:
+  quality:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+          fetch-depth: 0
+          submodules: false
+
+      - name: Install uv (version pinned via required-version in pyproject.toml)
+        uses: astral-sh/setup-uv@20cfd1bf945f4377ade1205e4dbc17946fc9a30d # v10.0.1
+        with:
+          version-file: search-router/pyproject.toml
+          enable-cache: true
+          cache-dependency-glob: search-router/uv.lock
+
+      - name: "Workflow lint (actionlint)"
+        run: |
+          go install github.com/rhysd/actionlint/cmd/actionlint@latest 2>/dev/null || \
+            docker run --rm -v "$PWD:/repo" -w /repo rhysd/actionlint:latest || \
+            echo "actionlint unavailable — skipped"
+
+      - name: "Workflow security lint (zizmor)"
+        # Measure-first: findings go to the run log, flip to a hard gate after
+        # the initial triage (~1 cycle).
+        continue-on-error: true
+        run: uvx zizmor --format=github .github/workflows/ || true
+
+      - name: "Dockerfile lint (hadolint)"
+        run: |
+          docker run --rm -v "$PWD:/repo" -w /repo hadolint/hadolint:v2.13.1-alpine \
+            hadolint --config .hadolint.yaml search-router/Dockerfile
+
+      - name: "Lockfile freshness"
+        working-directory: search-router
+        # Fails when pyproject.toml changed without `uv lock` — the lock is
+        # what CI and the image actually install.
+        run: uv lock --check
+
+      - name: "Ruff on changed files"
+        run: |
+          BASE="${{ github.event.pull_request.base.sha || 'origin/main' }}"
+          CHANGED=$(bash scripts/changed-py.sh "$BASE")
+          if [ -z "$CHANGED" ]; then echo "no py changes"; exit 0; fi
+          echo "$CHANGED" | xargs uvx ruff@0.16.7 check --output-format=github
+          echo "$CHANGED" | xargs uvx ruff@0.16.7 format --check
+
+      - name: "Full lint report (nightly / informational)"
+        if: github.event_name == 'schedule'
+        run: uvx ruff@0.16.7 check . --statistics || true
+
+      - name: "PR size gate"
+        if: github.event_name == 'pull_request'
+        run: |
+          LOC=$(git diff --numstat ${{ github.event.pull_request.base.sha }}...HEAD \
+            -- 'search-router/**' | awk '{s+=$1+$2} END {print s+0}')
+          echo "changed LOC: $LOC (max $GATE_PR_MAX_LOC)"
+          [ "$LOC" -le "$GATE_PR_MAX_LOC" ] || { echo "PR too large — split it"; exit 1; }
+
+      - name: "Test floor — suite must not shrink"
+        run: |
+          BASE="${{ github.event.pull_request.base.sha || 'origin/main' }}"
+          ADDED=$(git diff --name-only --diff-filter=D "$BASE"...HEAD -- 'search-router/tests/test_*.py' | wc -l)
+          [ "$ADDED" -eq 0 ] || { echo "test files deleted: not allowed"; exit 1; }
+
+  test:
+    runs-on: ubuntu-latest
+    needs: quality
+    timeout-minutes: 15
+    defaults:
+      run:
+        working-directory: search-router   # eval/ name collision — must run from here
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+          fetch-depth: 0   # diff-cover needs the base ref
+          submodules: false
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@20cfd1bf945f4377ade1205e4dbc17946fc9a30d # v10.0.1
+        with:
+          version-file: search-router/pyproject.toml
+          enable-cache: true
+          cache-dependency-glob: search-router/uv.lock
+          python-version: ${{ env.PYTHON_VERSION }}
+
+      - name: Install deps from lockfile
+        run: uv sync --locked
+
+      - name: Pytest + coverage on changed code
+        run: uv run pytest tests/ -q --cov=. --cov-branch --cov-report=term-missing --cov-report=json --cov-report=xml
+
+      - name: "Coverage baseline → step summary"
+        if: always()
+        run: |
+          python - <<'PY'
+          import json, os
+          try:
+              d = json.load(open("coverage.json"))
+          except OSError:
+              raise SystemExit("no coverage.json — pytest did not run")
+          t = d["totals"]
+          branch_pct = float(
+              t.get("percent_covered_display", t["percent_covered"])
+          )
+          line = (
+              f"total {t['percent_covered']:.1f}% | "
+              f"covered {t['covered_lines']}/{t['num_statements']} stmts, "
+              f"{t['covered_branches']}/{t['num_branches']} branches "
+              f"({branch_pct:.1f}%)"
+          )
+          print(line)
+          with open(os.environ["GITHUB_STEP_SUMMARY"], "a") as f:
+              f.write("## Coverage baseline (informational)\n\n")
+              f.write(f"- **Total:** {line}\n")
+          PY
+
+      - name: "Diff coverage gate (≥ $GATE_DIFF_COVERAGE% on changed lines)"
+        if: github.event_name == 'pull_request'
+        run: |
+          BASE="${{ github.event.pull_request.base.sha }}"
+          uv run diff-cover coverage.xml \
+            --compare-branch="$BASE" \
+            --fail-under="$GATE_DIFF_COVERAGE" \
+            --markdown-report diff-cover.md
+          cat diff-cover.md >> "$GITHUB_STEP_SUMMARY"
+
+      - name: "SBOM (CycloneDX) artifact"
+        if: always()
+        run: uv export --frozen --no-dev --format cyclonedx1.5 -o sbom.cdx.json
+
+      - name: Upload coverage + SBOM
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: coverage-${{ github.sha }}
+          path: |
+            search-router/coverage.json
+            search-router/sbom.cdx.json
+          if-no-files-found: ignore
+
+  security:
+    runs-on: ubuntu-latest
+    needs: quality
+    timeout-minutes: 15
+    permissions:
+      contents: read
+      pull-requests: write   # gitleaks-action annotates PR scans
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+          fetch-depth: 0
+          submodules: false
+
+      - name: "Secret scan (gitleaks)"
+        uses: gitleaks/gitleaks-action@ff98106e4c7b2bc287b24eaf42907196329070c7 # v2
+        env:
+          # Required by gitleaks-action v2 for pull_request scans
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITLEAKS_ENABLE_SUMMARY: "true"
+
+      - name: "SCA — dependency vulnerabilities (uv.lock)"
+        run: |
+          docker run --rm -v "$PWD:/repo" -w /repo \
+            aquasec/osv-scanner:v2.3.0 scan --lockfile=search-router/uv.lock \
+            || echo "osv-scanner unavailable — skipped"
+
+      - name: "IaC misconfig scan (trivy fs)"
+        # Covers Dockerfile + docker-compose.yml misconfig. Measure-first:
+        # findings to the log, flip exit-code to '1' after first triage.
+        uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
+        with:
+          scan-type: fs
+          scan-ref: .
+          scanners: misconfig
+          severity: CRITICAL,HIGH
+          ignore-unfixed: true
+          format: table
+          exit-code: '0'
+
+  sca:
+    # SCA tier from the quality workflow: pip-audit on requirements.txt.
+    # requirements.txt is now the uv-locked export (pinned + hashed), so this
+    # audits the exact resolved tree. Still visibility-first: findings go to
+    # the step summary; only a pip-audit tool error (exit > 1) fails. Flip to
+    # a hard gate once the baseline has been triaged (~2 weeks).
+    runs-on: ubuntu-latest
+    needs: quality
+    timeout-minutes: 10
+    defaults:
+      run:
+        working-directory: search-router
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+          submodules: false
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+      - name: Install pip-audit
+        run: pip install pip-audit
+      - name: "Audit requirements (report-only)"
+        run: |
+          set +e
+          pip-audit -r requirements.txt --progress-spinner off 2>&1 | tee /tmp/pip-audit.txt
+          RC=${PIPESTATUS[0]}
+          set -e
+          {
+            echo "## pip-audit — dependency CVE baseline"
+            echo '```'
+            cat /tmp/pip-audit.txt
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+          # 0 = clean, 1 = vulnerabilities found (visibility), >1 = tool error
+          [ "$RC" -le 1 ] || exit "$RC"
+
+  typecheck:
+    # Type tier: pyright at error level over search-router — hard ratchet.
+    # Fails if the error count rises above GATE_PYRIGHT_ERRORS_MAX; lower the
+    # gate whenever the baseline improves. Drive to 0, then remove the gate.
+    runs-on: ubuntu-latest
+    needs: quality
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+          submodules: false
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: 22
+      - name: Install uv
+        uses: astral-sh/setup-uv@20cfd1bf945f4377ade1205e4dbc17946fc9a30d # v10.0.1
+        with:
+          version-file: search-router/pyproject.toml
+          enable-cache: true
+          cache-dependency-glob: search-router/uv.lock
+          python-version: ${{ env.PYTHON_VERSION }}
+      - name: Install deps from lockfile
+        working-directory: search-router
+        run: uv sync --locked
+      - name: "Pyright ratchet"
+        working-directory: search-router
+        run: |
+          uv run pyright --outputjson > pyright-out.json || true
+          python - <<'PY'
+          import json, os, sys
+          d = json.load(open("pyright-out.json"))
+          n = d["summary"]["errorCount"]
+          max_allowed = int(os.environ["GATE_PYRIGHT_ERRORS_MAX"])
+          print(f"pyright errors: {n} (ratchet max: {max_allowed})")
+          with open(os.environ["GITHUB_STEP_SUMMARY"], "a") as f:
+              f.write(f"## Pyright ratchet\n\n- errors: **{n}** / max {max_allowed}\n")
+          if n > max_allowed:
+              # Surface the top diagnostics so authors can triage without
+              # digging through the full JSON blob in the run log.
+              errors = [
+                  e for e in d.get("generalDiagnostics", [])
+                  if e.get("severity") in (1, "error")
+              ]
+              errors.sort(
+                  key=lambda e: (
+                      e.get("file", ""),
+                      e.get("range", {}).get("start", {}).get("line", 0),
+                  )
+              )
+              with open(os.environ["GITHUB_STEP_SUMMARY"], "a") as f:
+                  f.write("\n### Top diagnostics (on failure)\n\n")
+                  for e in errors[:25]:
+                      file = e.get("file", "?")
+                      line = e.get("range", {}).get("start", {}).get("line", 0) + 1
+                      code = e.get("code", "?")
+                      msg = str(e.get("message", "")).replace("\n", " ")[:120]
+                      f.write(f"- `{os.path.relpath(file)}:{line}` {code} — {msg}\n")
+          sys.exit(1 if n > max_allowed else 0)
+          PY

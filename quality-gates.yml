@@ -1,0 +1,29 @@
+# quality-gates.yml — thresholds as code: owned, reviewable, expiring.
+# Review every ~90 days: a gate that caught nothing for 3 cycles gets
+# tightened, replaced, or deleted.
+version: 1
+owner: "@search-hub"
+review_cycle_days: 90
+
+gates:
+  diff_coverage_min: 80          # coverage on changed lines, not whole repo
+  branch_coverage_min: 70
+  pr_size_max_loc: 400
+  ci_p50_minutes_max: 10
+  dependency_min_release_age_days: 7
+  critical_bugs: 0
+  flaky_rate_max_pct: 0.5
+  duplicated_lines_max: 5
+  pyright_errors_max: 65         # ratchet — baseline 2026-09-25, tighten only
+
+scope:
+  # Findings only block when they touch new/changed code — the legacy
+  # baseline is worked down gradually, not grandfathered forever.
+  blocking_on: [diff, new_files]
+  lint_scope:
+    - "search-router/**"
+  lint_excludes:
+    - "firecrawl/**"
+    - "searxng/**"
+  test_command: "cd search-router && python -m pytest tests/ -q"
+  test_floor: 1200               # suite must never shrink below this count (1262 @ BASELINE-V3 freeze)

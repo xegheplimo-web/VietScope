@@ -1,0 +1,14 @@
+{"query": "Vingroup doanh thu năm 2025", "expected_urls": ["vingroup.net", "cafef.vn", "vnexpress.net", "vietstock.vn"], "category": "vn_company", "region": "vn", "expected_facts": ["Vingroup"]}
+{"query": "công ty Vinamilk thông tin cổ phiếu VNM", "expected_urls": ["vinamilk.com.vn", "hsx.vn", "cafef.vn", "vietstock.vn"], "category": "vn_company", "region": "vn", "expected_facts": ["Vinamilk", "VNM"]}
+{"query": "VinFast công ty mã cổ phiếu VFS tin tức", "expected_urls": ["vinfast.vn", "cafef.vn", "vnexpress.net", "reuters.com"], "category": "vn_company", "region": "vn", "expected_facts": ["VinFast", "VFS"]}
+{"query": "FPT Corporation doanh thu lợi nhuận quý gần nhất", "expected_urls": ["fpt.com", "cafef.vn", "vietstock.vn", "hsx.vn"], "category": "vn_company", "region": "vn", "expected_facts": ["FPT"]}
+{"query": "Masan Group lĩnh vực kinh doanh chính", "expected_urls": ["masangroup.com", "cafef.vn", "vnexpress.net"], "category": "vn_company", "region": "vn"}
+{"query": "Vietcombank lãi suất thông tin ngân hàng VCB", "expected_urls": ["vietcombank.com.vn", "hsx.vn", "cafef.vn"], "category": "vn_company", "region": "vn"}
+{"query": "Thaco Truong Hai tập đoàn sản xuất ô tô", "expected_urls": ["thaco.com.vn", "vnexpress.net", "cafef.vn"], "category": "vn_company", "region": "vn"}
+{"query": "Sun Group các dự án bất động sản nổi bật", "expected_urls": ["sungroup.com.vn", "vnexpress.net", "batdongsan.com.vn"], "category": "vn_company", "region": "vn"}
+{"query": "Viettel doanh thu tập đoàn viễn thông 2025", "expected_urls": ["viettel.com.vn", "vnexpress.net", "cafef.vn"], "category": "vn_company", "region": "vn"}
+{"query": "Hoà Phát Group HPG thép doanh thu", "expected_urls": ["hoaphat.com.vn", "hsx.vn", "cafef.vn", "vietstock.vn"], "category": "vn_company", "region": "vn"}
+{"query": "MoMo ví điện tử công ty thông tin", "expected_urls": ["momo.vn", "vnexpress.net", "genk.vn"], "category": "vn_company", "region": "vn"}
+{"query": "Aeon Mall Việt Nam các trung tâm thương mại", "expected_urls": ["aeonmall-vietnam.com", "vnexpress.net", "batdongsan.com.vn"], "category": "vn_company", "region": "vn"}
+{"query": "Gia đình Panda bánh kẹo công ty", "expected_urls": ["gdd.com.vn"], "category": "vn_company", "region": "vn"}
+{"query": "Bamboo Airways thông tin hãng hàng không", "expected_urls": ["bambooairways.com", "vnexpress.net", "cafef.vn"], "category": "vn_company", "region": "vn"}

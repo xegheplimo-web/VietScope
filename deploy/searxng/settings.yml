@@ -1,0 +1,169 @@
+# Search Hub Wave 8 — SearXNG engine matrix tuning (2026-08-17)
+# Mục tiêu: chất lượng search tương đương claude-opus-4-6-search (multi-engine recall + time_range)
+# KHÔNG dùng Claude API — bù bằng: searxng multi-engine (10+ web engines) + firecrawl + LLM synthesis (glm-5)
+# Backup gốc: settings.yml.bak-w8
+# FIX 17/08 v2.1: use_default_settings:true + engines list KHÔNG tắt engines default khác
+#   → 98 engines enabled đồng thời → rate-limit (brave/startpage/google cse/baidu/qwant/resulthunter suspend)
+#   → chuyển sang use_default_settings.engines.keep_only (chỉ giữ ~21 engines ổn định + instant answers)
+# INFRA-STABLE-01 (24/09): file moved OUT of the searxng submodule → deploy/searxng/
+#   (compose mounts ./deploy/searxng/ over /etc/searxng/). qwant disabled — ~70 CAPTCHA
+#   errors/2h, noise not results. request_timeout 8→10 / max 12→15 for wikidata timeouts.
+
+use_default_settings:
+  engines:
+    keep_only:
+      - bing
+      - duckduckgo
+      - brave
+      - startpage
+      - google cse
+      - mojeek
+      - qwant
+      - naver
+      - baidu
+      - mwmbl
+      - resulthunter
+      - gmx
+      - encyclosearch
+      - crowdview
+      - wiby
+      - searchmysite
+      - boardreader
+      - ddg definitions
+      - wikidata
+      - currency
+      - wikipedia
+      - openstreetmap
+      - pubmed
+      - arxiv
+      - github
+      - stackexchange
+      - openlibrary
+      - wikicommons
+      - wordnik
+      - openalex
+      - semantic_scholar
+      - crossref
+      - pdbe
+      - pypi
+      - crates
+      - pkg_go_dev
+      - docker_hub
+      - npm
+      - huggingface
+      - openverse
+      - flickr
+      - openclipart
+      - soundcloud
+      - open_meteo
+      - wttr
+      - mediawiki
+      - yacy
+      - yep
+      - yandex
+      - yahoo
+      - yahoo_news
+      - duckduckgo_weather
+      - duckduckgo_extra
+
+server:
+  # Placeholder only — never commit a real secret here. The searxng image
+  # overrides this via the SEARXNG_SECRET env var (set it in .env, see
+  # .env.example). Generate a fresh one: openssl rand -hex 32
+  secret_key: "REPLACE_WITH_SEARXNG_SECRET_ENV"
+  image_proxy: true
+  limiter: false
+  public_instance: false
+
+search:
+  formats:
+    - html
+    - json
+  safe_search: 0
+  default_lang: all
+  autocomplete: ""
+
+ui:
+  static_use_hash: true
+
+outgoing:
+  request_timeout: 10.0
+  max_request_timeout: 15.0
+  pool_connections: 100
+  pool_maxsize: 20
+
+# ── Engine matrix (tuning v2.2 — 05/09) ──────────────────────────────────
+# Bài học v2.2: 11 "small-web" engines (naver/baidu/mwmbl/resulthunter/gmx/
+# searchtoday/encyclosearch/crowdview/wiby/searchmysite/boardreader) bơm spam
+# & rác đa ngôn ngữ (KASKUS bokep, geg.de spam cho query AI market) dù weight thấp
+# → TẮT HẲN, chỉ giữ 7 Tier-1 engines chất lượng cao (verified 05/09/2026).
+engines:
+  # Tier 1 — engines chính, ổn định, quality cao
+  - name: bing
+    disabled: false
+    weight: 1.0
+    request_delay: 1.0
+  - name: duckduckgo
+    disabled: false
+    weight: 1.2
+  - name: brave
+    disabled: false
+    weight: 1.2
+    request_delay: 2.0
+  - name: startpage
+    disabled: false
+    weight: 1.1
+    request_delay: 2.0
+  - name: google cse
+    disabled: false
+    weight: 1.3
+  - name: mojeek
+    disabled: false
+    weight: 1.0
+    request_delay: 1.0
+  # INFRA-STABLE-01: qwant off — CAPTCHA-farming (~70 errors/2h), zero usable results
+  - name: qwant
+    disabled: true
+    weight: 0.9
+    request_delay: 1.0
+  - name: naver
+    disabled: true
+    weight: 0.7
+  - name: baidu
+    disabled: true
+    weight: 0.7
+  - name: mwmbl
+    disabled: true
+    weight: 0.6
+  - name: resulthunter
+    disabled: true
+    weight: 0.6
+  - name: gmx
+    disabled: true
+    weight: 0.5
+  - name: searchtoday
+    engine: s1search
+    shortcut: std
+    base_url: https://info.searchtoday.site
+    disabled: true
+    weight: 0.5
+  - name: encyclosearch
+    disabled: true
+    weight: 0.4
+  - name: crowdview
+    disabled: true
+    weight: 0.4
+  - name: wiby
+    disabled: true
+    weight: 0.5
+  - name: searchmysite
+    disabled: true
+    weight: 0.4
+  - name: boardreader
+    disabled: true
+    weight: 0.5
+
+  # Definitions / instant answers (ổn định, không rate-limit)
+  - name: ddg definitions
+    disabled: false
+    weight: 1.0

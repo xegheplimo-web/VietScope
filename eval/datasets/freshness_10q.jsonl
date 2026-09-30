@@ -1,0 +1,10 @@
+{"query": "giá vàng hôm nay", "expected_urls": ["cafef.vn", "sggp.org.vn", "doji.vn", "vnexpress.net"], "category": "current_events", "region": "vn", "time_sensitive": true}
+{"query": "giá Bitcoin hiện tại", "expected_urls": ["coindesk.com", "cointelegraph.com", "coinmarketcap.com", "cafef.vn"], "category": "current_events", "region": "vn", "time_sensitive": true}
+{"query": "kết quả xổ số miền Bắc hôm nay", "expected_urls": ["xskt.com.vn", "ketqua.net", "xosodaiphat.com"], "category": "current_events", "region": "vn", "time_sensitive": true}
+{"query": "kết quả bóng đá ngoại hạng Anh vòng đấu vừa qua", "expected_urls": ["thethao247.vn", "bongdaplus.vn", "premierleague.com", "bbc.com"], "category": "current_events", "region": "global", "time_sensitive": true}
+{"query": "thời tiết hôm nay tại TP.HCM", "expected_urls": ["nchmf.gov.vn", "accuweather.com", "weather.com"], "category": "current_events", "region": "vn", "time_sensitive": true}
+{"query": "giá xăng dầu hôm nay", "expected_urls": ["petrolimex.com.vn", "moit.gov.vn", "vnexpress.net", "cafef.vn"], "category": "current_events", "region": "vn", "time_sensitive": true}
+{"query": "tin tức bão mới nhất hôm nay", "expected_urls": ["nchmf.gov.vn", "vnexpress.net", "dantri.com.vn"], "category": "current_events", "region": "vn", "time_sensitive": true}
+{"query": "tỷ giá USD hôm nay", "expected_urls": ["vietcombank.com.vn", "cafef.vn", "bnews.vn", "vnexpress.net"], "category": "current_events", "region": "vn", "time_sensitive": true}
+{"query": "giá heo hơi hôm nay miền Bắc", "expected_urls": ["nongnghiep.vn", "cafef.vn", "baomoi.com"], "category": "current_events", "region": "vn", "time_sensitive": true}
+{"query": "tin công nghệ mới nhất hôm nay", "expected_urls": ["genk.vn", "vnexpress.net", "techcrunch.com", "theverge.com"], "category": "current_events", "region": "vn", "time_sensitive": true}

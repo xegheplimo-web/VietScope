@@ -1,0 +1,16 @@
+# CODEOWNERS — every PR needs an owner review before merge.
+# Order matters: later rules override earlier ones for the same path.
+
+*                                    @xegheplimo-web
+
+# Governance-sensitive surfaces — always require owner eyes
+/.github/workflows/                  @xegheplimo-web
+/quality-gates.yml                   @xegheplimo-web
+/lefthook.yml                        @xegheplimo-web
+/docker-compose.yml                  @xegheplimo-web
+/search-router/pyproject.toml        @xegheplimo-web
+/search-router/uv.lock               @xegheplimo-web
+/search-router/requirements.txt      @xegheplimo-web
+/search-router/Dockerfile*           @xegheplimo-web
+/search-router/security/             @xegheplimo-web
+/SECURITY.md                         @xegheplimo-web

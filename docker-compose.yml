@@ -182,7 +182,7 @@ services:
 
   firecrawl-rabbitmq:
     container_name: firecrawl-rabbitmq
-    image: rabbitmq:3.13.7-management
+    image: rabbitmq:4.3.5-management
     command: rabbitmq-server
     restart: unless-stopped
     networks:

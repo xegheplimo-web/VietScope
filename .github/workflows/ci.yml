@@ -67,7 +67,7 @@ jobs:
           docker system prune -af || true
           df -h /
       - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@8d2750c68a42422c14e847fe6c8ac0403b4cbd6f # v3
+        uses: docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069 # v4.4.1
       # GHCR rejects uppercase in repository names ("VietScope" → invalid
       # tag), so lowercase the repo slug once and reuse it everywhere.
       - name: Compute lowercase image ref

@@ -53,7 +53,7 @@ dev = [
     "pytest>=8.0",
     "pytest-cov>=6.0",
     "diff-cover>=9.0",
-    "ruff==0.16.7",
+    "ruff==0.16.8",
     "pyright>=1.1.390",
     # Exercised by tests/test_p11_mcp.py — the adapter itself is optional.
     "mcp>=1.0",

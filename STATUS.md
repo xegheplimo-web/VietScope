@@ -1,15 +1,15 @@
 # VietScope — Current Status
 
-> Search-Hub codebase · snapshot 2026-09-29 · `GET /v1/health` →
+> Search-Hub codebase · snapshot 2026-10-01 · `GET /v1/health` →
 > `{"status":"ok","version":"3.0.0"}`. This file reflects **current**
 > state only — phase history lives in git.
 
 ## Release
 
-- Repo: `xegheplimo-web/VietScope` (private), default branch `main`.
+- Repo: `xegheplimo-web/VietScope` (public), default branch `main`.
 - Version: 3.0.0 (`search-router/pyproject.toml`).
-- Python 3.12 canonical · uv lockfile · 17-service compose
-  (16 core + `opensearch-dashboards` profile `debug`).
+- Python 3.12 canonical · uv lockfile · 23-service compose
+  (16 core + `observability`/`debug`/`import` profiles).
 
 ## Architecture
 
@@ -62,8 +62,8 @@ Canonical: [`ARCHITECTURE.md`](ARCHITECTURE.md). Two data paths:
 
 ## Current test status
 
-- Unit/integration: **1882 passed, 33 skipped, 0 failed** — 1915
-  collected (2026-09-30, post-P17.1, host suite on Python 3.12.14 —
+- Unit/integration: **1897 passed, 33 skipped, 0 failed** — 1930
+  collected (2026-10-01, post-OPS-1, host suite on Python 3.12.14 —
   3.12.10/3.13 lack `HTMLParser(scripting=)` used by
   `crawler/fetcher.py`).
 - E2E crawl→search: **PASS** `test_crawl_to_search.py` (37.5s, live

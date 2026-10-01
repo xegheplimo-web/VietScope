@@ -421,6 +421,10 @@ services:
       OTEL_EXPORTER_OTLP_ENDPOINT: ${OTEL_EXPORTER_OTLP_ENDPOINT:-http://otel-collector:4317}
       DEPLOYMENT_ENVIRONMENT: ${DEPLOYMENT_ENVIRONMENT:-dev}
       APP_VERSION: ${APP_VERSION:-3.0.0}
+      # Structured JSON logs + optional Loki fan-out (observability profile)
+      JSON_LOGS: ${JSON_LOGS:-true}
+      JSON_LOGS_LOKI: ${JSON_LOGS_LOKI:-false}
+      LOKI_URL: ${LOKI_URL:-}
 
       # Server
       HOST: "0.0.0.0"

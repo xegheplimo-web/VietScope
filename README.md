@@ -12,7 +12,8 @@ rerank → synthesize. **No commercial search API key required.**
 
 ## Architecture
 
-16-container stack driven by `docker-compose.yml`:
+23-service compose stack driven by `docker-compose.yml`
+(16 core + `observability`/`debug`/`import` profiles):
 
 ```
                     CLIENTS (agents · curl · apps)
@@ -73,7 +74,7 @@ MCP adapter (optional, host process on `:8901`): `search-router/adapters/mcp_ser
 ```bash
 cd search-router
 uv sync                       # Python 3.12.14 — CI / Docker / pyright pin 3.12
-uv run pytest tests/ -q       # 1882 pass / 33 skip (1915 collected)
+uv run pytest tests/ -q       # 1897 pass / 33 skip (1930 collected)
 ruff check . && uv run pyright
 ```
 

@@ -15,7 +15,12 @@ from urllib.parse import urlsplit
 
 from opentelemetry import trace
 
+from observability.prometheus import LOKI_DROPPED_LOGS, LOKI_PUSH_ERRORS
+
 _REQUEST_ID_RE = re.compile(r"^[A-Za-z0-9._:-]{1,128}$")
+
+# Backlog cap for the Loki listener queue — bound memory when Loki is down.
+_LOKI_QUEUE_MAXSIZE = 10_000
 
 
 def safe_request_id(value: str | None) -> str:
@@ -91,6 +96,11 @@ class LokiLogHandler(logging.Handler):
             )
             resp = conn.getresponse()
             resp.read()  # drain so the connection closes cleanly
+            if not 200 <= resp.status < 300:
+                LOKI_PUSH_ERRORS.inc()
+        except Exception:
+            LOKI_PUSH_ERRORS.inc()
+            raise
         finally:
             conn.close()
 
@@ -99,6 +109,21 @@ class LokiLogHandler(logging.Handler):
             self._post(json.dumps(self.build_payload(record)).encode("utf-8"))
         except Exception:
             self.handleError(record)
+
+
+class _LokiQueueHandler(logging.handlers.QueueHandler):
+    """QueueHandler that drops (and counts) records once the queue is full.
+
+    The default ``enqueue`` calls ``put`` unbounded — a stalled Loki would
+    grow memory forever; a blocking ``put`` would stall request threads.
+    Dropping is the only fail-open behaviour left.
+    """
+
+    def enqueue(self, record: logging.LogRecord) -> None:
+        try:
+            self.queue.put_nowait(record)
+        except queue.Full:
+            LOKI_DROPPED_LOGS.inc()
 
 
 _LOKI_LISTENER: logging.handlers.QueueListener | None = None
@@ -131,8 +156,8 @@ def configure_json_logging() -> None:
             },
         )
         loki.setFormatter(JsonFormatter())
-        loki_queue: queue.Queue[logging.LogRecord] = queue.Queue()
-        queue_handler = logging.handlers.QueueHandler(loki_queue)
+        loki_queue: queue.Queue[logging.LogRecord] = queue.Queue(maxsize=_LOKI_QUEUE_MAXSIZE)
+        queue_handler = _LokiQueueHandler(loki_queue)
         queue_handler.setFormatter(JsonFormatter())
         root.addHandler(queue_handler)
         _LOKI_LISTENER = logging.handlers.QueueListener(loki_queue, loki)

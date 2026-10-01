@@ -747,8 +747,10 @@ async def search_v1(req: SearchRequest, request: Request):
 
     results_with_provider: list = []
     searxng_count = 0
+    searxng_called = False
     searxng = orchestrator.registry.get("searxng")
     if searxng is not None and _admitted("searxng"):
+        searxng_called = True
         spec = orchestrator.registry.spec("searxng")
         searxng_results, _report = await executor.call_provider(
             "searxng",
@@ -780,8 +782,9 @@ async def search_v1(req: SearchRequest, request: Request):
     results = [r for r, _ in results_with_provider]
 
     # Search-level metrics: zero hits from the primary lane is a degradation
-    # even when the DDGS fallback covers it.
-    if searxng_count == 0:
+    # even when the DDGS fallback covers it. SearXNG disabled/unadmitted is a
+    # configuration state, not an empty-lane signal — don't count it.
+    if searxng_called and searxng_count == 0:
         observe_degraded("searxng_empty")
     observe_search("/v1/search", "raw", len(results))
 

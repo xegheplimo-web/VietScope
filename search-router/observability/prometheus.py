@@ -40,6 +40,12 @@ PROVIDER_LATENCY = Histogram(
     ["provider"],
     buckets=(0.1, 0.5, 1, 2, 5, 10, 30),
 )
+LOKI_DROPPED_LOGS = Counter(
+    "search_loki_dropped_logs_total", "Log records dropped because the Loki queue was full"
+)
+LOKI_PUSH_ERRORS = Counter(
+    "search_loki_push_errors_total", "Loki push attempts failed (transport or non-2xx)"
+)
 CACHE_OPS = Counter("search_cache_operations_total", "Cache operations", ["layer", "outcome"])
 COMPONENT_LATENCY = Histogram(
     "search_component_duration_seconds",

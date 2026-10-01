@@ -4,6 +4,8 @@ import json
 import logging
 import logging.handlers
 
+import pytest
+
 
 def _record(msg: str = "hello", level: int = logging.INFO) -> logging.LogRecord:
     return logging.LogRecord("test", level, __file__, 1, msg, None, None)
@@ -81,7 +83,9 @@ def test_configure_json_logging_adds_loki_fanout(monkeypatch):
     old_handlers = root.handlers[:]
     try:
         obs.configure_json_logging()
-        assert any(isinstance(h, logging.handlers.QueueHandler) for h in root.handlers)
+        queue_handlers = [h for h in root.handlers if isinstance(h, logging.handlers.QueueHandler)]
+        assert queue_handlers
+        assert queue_handlers[0].queue.maxsize > 0  # bounded — no unbounded RAM
         assert obs._LOKI_LISTENER is not None
     finally:
         if obs._LOKI_LISTENER is not None:
@@ -103,3 +107,77 @@ def test_configure_json_logging_loki_off_by_default(monkeypatch):
         assert not any(isinstance(h, logging.handlers.QueueHandler) for h in root.handlers)
     finally:
         root.handlers = old_handlers
+
+
+def test_post_counts_non_2xx(monkeypatch):
+    """A 429/5xx from Loki must be counted — not silently treated as sent."""
+    import http.client
+
+    from observability.logging import LokiLogHandler
+
+    import observability.prometheus as prom
+
+    class _Resp:
+        status = 429
+
+        def read(self) -> None:
+            return None
+
+    class _Conn:
+        def __init__(self, *args, **kwargs) -> None:
+            pass
+
+        def request(self, *args, **kwargs) -> None:
+            pass
+
+        def getresponse(self):
+            return _Resp()
+
+        def close(self) -> None:
+            pass
+
+    monkeypatch.setattr(http.client, "HTTPConnection", _Conn)
+    before = prom.LOKI_PUSH_ERRORS._value.get()
+    LokiLogHandler("http://loki:3100", labels={})._post(b"{}")
+    assert prom.LOKI_PUSH_ERRORS._value.get() == before + 1
+
+
+def test_post_counts_transport_error(monkeypatch):
+    import http.client
+
+    from observability.logging import LokiLogHandler
+
+    import observability.prometheus as prom
+
+    class _Conn:
+        def __init__(self, *args, **kwargs) -> None:
+            pass
+
+        def request(self, *args, **kwargs) -> None:
+            raise OSError("connection refused")
+
+        def close(self) -> None:
+            pass
+
+    monkeypatch.setattr(http.client, "HTTPConnection", _Conn)
+    handler = LokiLogHandler("http://loki:3100", labels={})
+    before = prom.LOKI_PUSH_ERRORS._value.get()
+    with pytest.raises(OSError):
+        handler._post(b"{}")
+    assert prom.LOKI_PUSH_ERRORS._value.get() == before + 1
+
+
+def test_queue_handler_drops_and_counts_when_full():
+    import queue as _queue
+
+    from observability.logging import _LokiQueueHandler
+
+    import observability.prometheus as prom
+
+    q: _queue.Queue = _queue.Queue(maxsize=1)
+    handler = _LokiQueueHandler(q)
+    before = prom.LOKI_DROPPED_LOGS._value.get()
+    handler.enqueue(_record())
+    handler.enqueue(_record())  # full → drop, count, never raise
+    assert q.qsize() == 1
+    assert prom.LOKI_DROPPED_LOGS._value.get() == before + 1

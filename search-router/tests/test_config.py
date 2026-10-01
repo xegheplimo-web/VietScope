@@ -30,6 +30,11 @@ def test_app_cors_uses_settings_origins():
     assert cors, "CORSMiddleware not registered on the app"
     assert cors[0].kwargs["allow_origins"] == app_module.settings.cors_origins
     assert "*" not in cors[0].kwargs["allow_origins"]
+    # Correlation headers must survive a browser preflight to be usable
+    # cross-origin; the middleware echoes X-Request-ID back on responses.
+    assert "Search-Id" in cors[0].kwargs["allow_headers"]
+    assert "X-Request-ID" in cors[0].kwargs["allow_headers"]
+    assert "X-Request-ID" in cors[0].kwargs["expose_headers"]
 
 
 def test_metrics_db_default_outside_source_tree(monkeypatch):

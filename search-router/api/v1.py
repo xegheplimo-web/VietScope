@@ -1273,7 +1273,13 @@ async def news(req: SearchRequest):
         budget=SearchBudget.for_mode("fast"),
         profile=profile,
         mode="fast",
-        overrides={"categories": [SearchCategory.news], "max_results": req.max_results},
+        overrides={
+            "categories": [SearchCategory.news],
+            # Provider-visible categories stay exactly this list — the
+            # router's general_web backbone lane must not union back in.
+            "categories_exclusive": True,
+            "max_results": req.max_results,
+        },
     )
     return {
         "query": req.query,

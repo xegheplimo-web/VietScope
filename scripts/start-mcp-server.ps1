@@ -23,7 +23,7 @@ if (-not $env:MCP_ENABLE_DEEP_RESEARCH) { $env:MCP_ENABLE_DEEP_RESEARCH = "false
 # Router auth (P11.1): only the scoped SEARCH_HUB_ROUTER_KEY is honored — the
 # admin key must never sit on the normal MCP path (least privilege for Hermes
 # retrieval). Create one with:
-#   python search-router/manage_keys.py create --tenant hermes --name hermes-mcp --scopes "search:read,read:use"
+#   python search-router/manage_keys.py create --tenant hermes --name hermes-mcp --scopes "search:read,read:use,places:read"
 if (-not $env:SEARCH_HUB_ROUTER_KEY) {
     $envFile = Join-Path $root ".env"
     if (Test-Path $envFile) {
@@ -122,7 +122,7 @@ function Test-RouterCredential {
         $script:probeError = "SEARCH_HUB_ROUTER_KEY rejected (dummy/wrong/revoked)"
         return $false
     }
-    $required = @("search:read", "read:use")
+    $required = @("search:read", "read:use", "places:read")
     if ($env:MCP_ENABLE_DEEP_RESEARCH -match '^(1|true|yes|on)$') {
         $required += "research:use"
     }

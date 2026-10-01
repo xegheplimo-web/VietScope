@@ -10,10 +10,12 @@ The /v1/news endpoint must:
 from types import SimpleNamespace
 from unittest.mock import AsyncMock, MagicMock
 
-from fastapi.testclient import TestClient
-
 import api.v1 as v1
+from core.orchestrator import SearchOrchestrator
+from core.provider_registry import ProviderRegistry, _categories_for
+from fastapi.testclient import TestClient
 from models import SearchCategory
+from providers.base import ProviderResult, ProviderSpec, SourceType
 
 
 class _FakeQueryUnderstanding:
@@ -43,6 +45,7 @@ def _post_news(client, query="AI", max_results=5):
 
 def _client():
     import main as app_module
+
     return TestClient(app_module.app)
 
 
@@ -161,3 +164,98 @@ def test_news_uses_fast_mode(monkeypatch):
     assert resp.status_code == 200
     call_kwargs = orch._search_query.call_args[1]
     assert call_kwargs.get("mode") == "fast"
+
+
+# ─── R5 regression tests — real orchestrator + fake providers ────────────────
+
+
+class _CapturingProvider:
+    """Phase-2 provider stub — records the (sq, ctx) the executor passes in."""
+
+    def __init__(self, name, items=()):
+        self.name = name
+        self.items = list(items)
+        self.calls = []
+
+    async def search(self, sq, ctx=None):
+        self.calls.append((sq, ctx))
+        return list(self.items)
+
+    async def health(self):
+        return True
+
+
+def _news_orchestrator(providers):
+    """Real SearchOrchestrator over fakes that serve the news+general lanes.
+
+    Mirroring production specs (vnexpress, searxng), each fake serves both
+    general_web and news — so the router's always-on general_web backbone
+    lands in every pick's served_types.
+    """
+    reg = ProviderRegistry()
+    for name, provider in providers.items():
+        reg.register(
+            name,
+            provider,
+            ProviderSpec(
+                name=name,
+                source_types=[SourceType.general_web, SourceType.news],
+            ),
+        )
+    return SearchOrchestrator(reg)
+
+
+def test_news_provider_categories_are_exclusive(monkeypatch):
+    """Provider-visible categories for /v1/news must be exactly [news].
+
+    _categories_for unions sq.categories with every routed lane in
+    ctx.source_types; without exclusivity the general_web backbone re-adds
+    SearchCategory.general and generic web results leak into the news feed.
+    """
+    prov = _CapturingProvider("fakevn")
+    orch = _news_orchestrator({"fakevn": prov})
+    monkeypatch.setattr(v1, "_get_orchestrator", lambda: orch)
+
+    resp = _post_news(_client(), query="tin tức AI", max_results=3)
+
+    assert resp.status_code == 200
+    assert prov.calls, "provider was never searched"
+    for sq, ctx in prov.calls:
+        assert _categories_for(sq, ctx) == [SearchCategory.news]
+
+
+def test_news_max_results_caps_merged_response(monkeypatch):
+    """max_results bounds the merged+ranked response, not each provider."""
+    top = [
+        ProviderResult(
+            url=f"https://news-hub.example.com/story-{i}",
+            title=f"tin tức AI bản {i}",
+            snippet="tin tức AI",
+            score=score,
+        )
+        for i, score in enumerate((0.9, 0.8, 0.7))
+    ]
+    tail = [
+        ProviderResult(
+            url=f"https://filler-site.example.com/filler-{i}",
+            title=f"zzz qqq {i}",
+            snippet="zzz qqq",
+            score=0.1,
+        )
+        for i in range(3)
+    ]
+    orch = _news_orchestrator(
+        {
+            "alpha": _CapturingProvider("alpha", top),
+            "zeta": _CapturingProvider("zeta", tail),
+        }
+    )
+    monkeypatch.setattr(v1, "_get_orchestrator", lambda: orch)
+
+    resp = _post_news(_client(), query="tin tức AI", max_results=3)
+
+    assert resp.status_code == 200
+    data = resp.json()
+    assert data["count"] == 3
+    assert len(data["results"]) == 3
+    assert [r["url"] for r in data["results"]] == [r.url for r in top]

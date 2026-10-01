@@ -66,9 +66,19 @@ def test_health_404_everywhere_is_not_healthy(monkeypatch):
     """Regression for issue #20: 404s meant 'route missing', not 'healthy'."""
     import providers.firecrawl as fc
 
-    fake, _ = _fake_httpx({"/health": 404, "/v2/health": 404})
+    fake, _ = _fake_httpx({"/health": 404, "/v2/health": 404, "/": 404})
     monkeypatch.setattr(fc, "httpx", fake)
     assert _run(fc.firecrawl_health()) is False
+
+
+def test_health_root_is_last_liveness_signal(monkeypatch):
+    """Pinned v2.11.x build: every named health route 404s; only ``/`` is 200."""
+    import providers.firecrawl as fc
+
+    fake, seen = _fake_httpx({"/health": 404, "/v2/health": 404, "/": 200})
+    monkeypatch.setattr(fc, "httpx", fake)
+    assert _run(fc.firecrawl_health()) is True
+    assert len(seen) == 3
 
 
 def test_health_500_is_not_healthy(monkeypatch):

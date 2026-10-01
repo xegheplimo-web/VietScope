@@ -7,7 +7,8 @@ description: How to run tests, the dev server, and UI-driven verification for se
 
 ## Environment facts (verified on this box)
 
-- Windows Server 2022; repo at `C:\Users\Administrator\repos\search-hub`, package dir `search-router/`.
+- Repo root `<repo-root>` (current dev checkout: `F:\VietScope-main`); package
+  dir `<repo-root>/search-router/`.
 - **No system Python.** Always run through uv from `search-router/`:
   `uv run --project . python -m pytest tests/ -q`
   The `.venv` (incl. torch/sentence-transformers) was created by `uv run`/`uv sync` — do not create a second env.
@@ -17,7 +18,7 @@ description: How to run tests, the dev server, and UI-driven verification for se
 
 ## Box portability
 
-- The repo may be checked out on Linux (e.g. `/home/ubuntu/repos/search-hub`) instead of Windows. `uv`, `uv run`, pytest, and `main.py` behave identically.
+- The repo may be checked out on Linux (e.g. `/home/ubuntu/VietScope`) instead of Windows. `uv`, `uv run`, pytest, and `main.py` behave identically.
 - **Check `docker info` before assuming Docker is unavailable** — the "Docker unavailable" note was verified on the Windows box; on Linux the daemon usually works, which unlocks the full live P17 stack and the `E2E=1` harness (the only way to runtime-test OpenSearch/indexer paths end-to-end locally).
 
 ## Live local stack (PostGIS + OpenSearch) — Linux/Docker path

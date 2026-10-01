@@ -19,7 +19,7 @@ Use GitHub's private reporting instead:
 
 1. Go to **Security → Advisories → Report a vulnerability** on this repo, or
 2. Open a draft security advisory via
-   `https://github.com/xegheplimo-web/search-hub/security/advisories/new`
+   `https://github.com/xegheplimo-web/VietScope/security/advisories/new`
 
 Please include:
 

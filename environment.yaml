@@ -1,4 +1,4 @@
-# Devin Cloud — Declarative Repo Setup for xegheplimo-web/search-hub
+# Devin Cloud — Declarative Repo Setup for xegheplimo-web/VietScope
 # Blueprint format: https://docs.devin.ai/onboard-devin/environment/blueprint-reference
 #
 # Goal: a session on this repo lands with Python 3.12 + uv 0.12.18 (pinned by

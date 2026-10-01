@@ -6,7 +6,7 @@
 
 ## Release
 
-- Repo: `xegheplimo-web/search-hub` (private), default branch `main`.
+- Repo: `xegheplimo-web/VietScope` (private), default branch `main`.
 - Version: 3.0.0 (`search-router/pyproject.toml`).
 - Python 3.12 canonical · uv lockfile · 17-service compose
   (16 core + `opensearch-dashboards` profile `debug`).

@@ -63,7 +63,7 @@ MEMORY RECALL → DISCOVERY → R1 PROBE → R2 ANALYSIS (FACT/INFERENCE/UNKNOWN
 
 ```bash
 # Devin executor
-cd F:/Search-Hub && devin --respect-workspace-trust false -p --permission-mode dangerous --prompt-file "<contract.md>"
+cd F:/VietScope-main && devin --respect-workspace-trust false -p --permission-mode dangerous --prompt-file "<contract.md>"
 
 # Codex review (KHÔNG dùng --sandbox — gây hộp thoại phê duyệt)
 codex exec "<review brief — verdict PASS/PASS_WITH_NOTES/NEEDS_FIX/BLOCK>"
@@ -76,11 +76,11 @@ cd search-router && env -u PYTHONPATH python -m pytest tests/ -q -p no:cacheprov
 
 # GitHub API (token trong ~/.git-credentials dòng 1)
 GH_TOKEN=$(head -1 ~/.git-credentials | sed 's|https://[^:]*:\([^@]*\)@.*|\1|')
-curl -s -H "Authorization: token $GH_TOKEN" "https://api.github.com/repos/xegheplimo-web/search-hub/..."
+curl -s -H "Authorization: token $GH_TOKEN" "https://api.github.com/repos/xegheplimo-web/VietScope/..."
 
 # Merge PR (chỉ khi CI xanh + review PASS)
 curl -s -X PUT -H "Authorization: token $GH_TOKEN" \
-  "https://api.github.com/repos/xegheplimo-web/search-hub/pulls/N/merge" \
+  "https://api.github.com/repos/xegheplimo-web/VietScope/pulls/N/merge" \
   -d '{"merge_method":"merge"}'
 
 # Rebuild 1 service sau merge (stack đang chạy)

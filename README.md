@@ -58,7 +58,7 @@ curl http://localhost:8888/v1/health
 | `POST` | `/v1/code_search` | code search via GitHub + grep.app | Bearer |
 | `POST` | `/v1/research` | full pipeline → answer + evidence + citations | Bearer |
 | `POST` | `/v1/answer` | RAG synthesis over indexed context | Bearer |
-| `GET`  | `/v1/places/search` | canonical place search (P16.1) | Bearer (`admin:debug`) |
+| `GET`  | `/v1/places/search` | canonical place search (P16.1) | Bearer (`places:read`) |
 | `GET`  | `/v1/places/{id}` | canonical place projection (P17) | Bearer |
 | `GET`  | `/v1/admin/resolve` | entity resolution (P0) | Bearer (`admin:debug`) |
 

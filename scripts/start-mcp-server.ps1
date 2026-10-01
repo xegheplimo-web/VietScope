@@ -15,7 +15,7 @@ $env:MCP_PORT = "8901"
 if (-not $env:SEARCH_ROUTER_URL) { $env:SEARCH_ROUTER_URL = "http://localhost:8888" }
 $routerUrl = $env:SEARCH_ROUTER_URL
 
-# Default Hermes surface: search / fetch_evidence / code_search only.
+# Default Hermes surface: search / fetch_evidence / code_search / search_places.
 # Opt-in deep-research lane (fetch + research, source cap 8 -> 15):
 #   $env:MCP_ENABLE_DEEP_RESEARCH = "true"
 if (-not $env:MCP_ENABLE_DEEP_RESEARCH) { $env:MCP_ENABLE_DEEP_RESEARCH = "false" }
@@ -54,7 +54,7 @@ function Test-McpSurface {
     # $true only when :8901 is an MCP server exposing exactly the expected
     # tool surface. A LISTEN port alone proves nothing — the stale-MCP
     # failure mode (old code/dummy key/wrong tools) also listens on 8901.
-    $expected = @("search", "fetch_evidence", "code_search")
+    $expected = @("search", "fetch_evidence", "code_search", "search_places")
     if ($env:MCP_ENABLE_DEEP_RESEARCH -match '^(1|true|yes|on)$') {
         $expected += @("fetch", "research")
     }

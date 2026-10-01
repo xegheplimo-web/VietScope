@@ -1,5 +1,5 @@
 # Search Hub — Unified Docker Compose
-# 17 services, 1 network, 1 .env, 1 command
+# 23 services, 1 network, 1 .env, 1 command
 #
 #   Core data/retrieval: hub-postgres (PostGIS), hub-redis, minio,
 #   opensearch, qdrant, embedding-service, reranker-service

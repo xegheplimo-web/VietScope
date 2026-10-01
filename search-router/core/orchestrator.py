@@ -248,6 +248,7 @@ class SearchOrchestrator:
         profile,
         mode: str,
         progress: Callable[[str, dict], Awaitable[None]] | None = None,
+        overrides: dict | None = None,
     ) -> list[Source]:
         if not self.registry or not self.registry.all():
             return []
@@ -257,10 +258,17 @@ class SearchOrchestrator:
             if profile.freshness_required
             else [SearchCategory.general]
         )
+        if overrides and "categories" in overrides:
+            categories = overrides["categories"]
+        max_results = (
+            overrides["max_results"]
+            if overrides and "max_results" in overrides
+            else settings.max_results
+        )
         sq = ProviderSearchQuery(
             query=query,
             categories=categories,
-            max_results=settings.max_results,
+            max_results=max_results,
             lang=profile.language,
             safe=False,
         )

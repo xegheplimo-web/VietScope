@@ -1265,19 +1265,15 @@ async def news(req: SearchRequest):
     orchestrator = _get_orchestrator()
     profile = orchestrator.query_understanding.analyze(req.query)
 
-    # Force news categories
-    from core.provider_registry import ProviderSearchQuery
+    # Force news categories + max_results via overrides
     from models import SearchCategory
 
-    sq = ProviderSearchQuery(
-        query=req.query,
-        categories=[SearchCategory.news],
-        max_results=req.max_results,
-        lang=profile.language,
-    )
-
     results = await orchestrator._search_query(
-        sq, budget=SearchBudget.for_mode("fast"), profile=profile, mode="fast"
+        req.query,
+        budget=SearchBudget.for_mode("fast"),
+        profile=profile,
+        mode="fast",
+        overrides={"categories": [SearchCategory.news], "max_results": req.max_results},
     )
     return {
         "query": req.query,

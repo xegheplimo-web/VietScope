@@ -492,7 +492,7 @@ services:
   hub-postgres:
     # PostGIS build of Postgres 16 — same PGDATA layout as the plain postgres
     # image, so the existing hub-pg-data volume carries over without a dump.
-    image: docker.io/postgis/postgis:16-3.5-alpine
+    image: docker.io/postgis/postgis:17-3.5-alpine
     container_name: hub-postgres
     restart: unless-stopped
     environment:

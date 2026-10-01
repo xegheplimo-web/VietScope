@@ -54,12 +54,14 @@ curl http://localhost:8888/v1/health
 |--------|------|-------------|------|
 | `GET`  | `/v1/health` | router + provider status | — |
 | `POST` | `/v1/search` | web/news/image search via SearXNG | Bearer |
-| `POST` | `/v1/fetch` | scrape / crawl / map a URL via Firecrawl | Bearer |
-| `POST` | `/v1/code_search` | code search via GitHub + grep.app | Bearer |
+| `POST` | `/v1/news` | news search with realtime freshness | Bearer |
+| `POST` | `/v1/read` | read a URL via Firecrawl (clean Markdown) | Bearer |
+| `POST` | `/code_search` | code search via GitHub + grep.app | Bearer |
 | `POST` | `/v1/research` | full pipeline → answer + evidence + citations | Bearer |
 | `POST` | `/v1/answer` | RAG synthesis over indexed context | Bearer |
-| `GET`  | `/v1/places/search` | canonical place search (P16.1) | Bearer (`admin:debug`) |
-| `GET`  | `/v1/places/{id}` | canonical place projection (P17) | Bearer |
+| `GET`  | `/v1/places/search` | canonical place search (P16.1) | Bearer (`places:read`) |
+| `GET`  | `/v1/places/autocomplete` | canonical place autocomplete | Bearer (`places:read`) |
+| `GET`  | `/v1/places/{place_id}` | canonical place projection (P17) | Bearer |
 | `GET`  | `/v1/admin/resolve` | entity resolution (P0) | Bearer (`admin:debug`) |
 
 All `/v1/*` paths are **Bearer-protected** when `API_AUTH_ENABLED=*` (`true` on the

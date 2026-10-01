@@ -28,7 +28,7 @@ from models import (
 )
 from pipeline import reader
 from pipeline.reader import ReadResult
-from providers.base import result_domain
+from providers.base import SearchContext, result_domain
 from ranking.authority import authority_for, authority_score
 from ranking.quality import FRESHNESS_HALFLIFE_DAYS
 
@@ -37,12 +37,13 @@ from core.federation import FanOutResult, FederatedExecutor
 from core.inference_gateway import InferenceGateway, get_inference_gateway
 from core.provider_health import get_provider_health_monitor
 from core.provider_registry import (
+    _LANE_TO_CATEGORY,
     ProviderRegistry,
     ProviderSearchQuery,
     ProviderSearchResult,
 )
 from core.query_understanding import QueryUnderstanding
-from core.source_router import SourceRouter
+from core.source_router import ProviderPick, SourceRouter
 
 
 class SearchOrchestrator:
@@ -207,6 +208,8 @@ class SearchOrchestrator:
         mode: str,
         profile,
         progress: Callable[[str, dict], Awaitable[None]] | None = None,
+        *,
+        categories_exclusive: bool = False,
     ) -> tuple[list[tuple[str, ProviderSearchResult]], list[str], FanOutResult]:
         """Adaptive parallel fan-out across the registry.
 
@@ -230,11 +233,28 @@ class SearchOrchestrator:
                 },
             )
         executor = FederatedExecutor(self.monitor, budget=budget)
+
+        def _ctx_for(pick: ProviderPick) -> SearchContext:
+            ctx = self.router.context_for(pick, profile, mode)
+            if categories_exclusive:
+                # _categories_for re-unions every mapped lane in
+                # ctx.source_types into the provider-visible categories —
+                # an exclusive caller (e.g. /v1/news) must not pick up the
+                # always-on general_web backbone lane.
+                allowed = set(sq.categories or [])
+                ctx.source_types = [
+                    t
+                    for t in ctx.source_types
+                    if t not in _LANE_TO_CATEGORY or _LANE_TO_CATEGORY[t] in allowed
+                ]
+                ctx.categories = sorted({t.value for t in ctx.source_types})
+            return ctx
+
         fanout = await executor.execute(
             plan,
             self.registry,
             sq,
-            lambda pick: self.router.context_for(pick, profile, mode),
+            _ctx_for,
         )
         # ProviderResult.source always carries the provider name (executor
         # fills it via to_provider_result for legacy/dict payloads too).
@@ -248,6 +268,7 @@ class SearchOrchestrator:
         profile,
         mode: str,
         progress: Callable[[str, dict], Awaitable[None]] | None = None,
+        overrides: dict | None = None,
     ) -> list[Source]:
         if not self.registry or not self.registry.all():
             return []
@@ -257,15 +278,29 @@ class SearchOrchestrator:
             if profile.freshness_required
             else [SearchCategory.general]
         )
+        if overrides and "categories" in overrides:
+            categories = overrides["categories"]
+        max_results = (
+            overrides["max_results"]
+            if overrides and "max_results" in overrides
+            else settings.max_results
+        )
         sq = ProviderSearchQuery(
             query=query,
             categories=categories,
-            max_results=settings.max_results,
+            max_results=max_results,
             lang=profile.language,
             safe=False,
         )
 
-        flat, _, _fanout = await self._route_query(sq, budget, mode, profile, progress)
+        flat, _, _fanout = await self._route_query(
+            sq,
+            budget,
+            mode,
+            profile,
+            progress,
+            categories_exclusive=bool(overrides and overrides.get("categories_exclusive")),
+        )
 
         if not flat:
             return []
@@ -273,6 +308,10 @@ class SearchOrchestrator:
         sources = self._normalize(flat)
         sources = self._dedupe(sources)
         sources = self._rank(sources, query, profile.freshness_required)
+        if overrides and "max_results" in overrides:
+            # overrides["max_results"] caps the merged response (/v1/news);
+            # sq.max_results only bounded each provider's page size.
+            sources = sources[: overrides["max_results"]]
         return sources
 
     async def _fetch_top(self, top: list[Source], budget: SearchBudget) -> list[Source]:

@@ -8,11 +8,11 @@ from __future__ import annotations
 
 import json
 import logging
+import os
 import time
 from contextlib import contextmanager
 from dataclasses import dataclass, field
 from typing import Any
-import os
 
 logger = logging.getLogger(__name__)
 
@@ -50,18 +50,24 @@ _INSTRUMENTED = False
 def setup_telemetry(service_name: str = "search-router") -> None:
     """Install one process-wide OTLP provider when explicitly enabled."""
     global _PROVIDER
-    if not _OTEL_AVAILABLE or os.getenv("OTEL_ENABLED", "false").lower() not in {"1", "true", "yes"}:
+    if not _OTEL_AVAILABLE or os.getenv("OTEL_ENABLED", "false").lower() not in {
+        "1",
+        "true",
+        "yes",
+    }:
         return
     if _PROVIDER is not None:
         return
     endpoint = os.getenv("OTEL_EXPORTER_OTLP_ENDPOINT", "http://otel-collector:4317")
     try:
-        resource = Resource.create({
-            "service.name": os.getenv("OTEL_SERVICE_NAME", service_name),
-            "service.version": os.getenv("APP_VERSION", "3.0.0"),
-            "deployment.environment": os.getenv("DEPLOYMENT_ENVIRONMENT", "dev"),
-            "service.instance.id": os.getenv("HOSTNAME", "search-router"),
-        })
+        resource = Resource.create(
+            {
+                "service.name": os.getenv("OTEL_SERVICE_NAME", service_name),
+                "service.version": os.getenv("APP_VERSION", "3.0.0"),
+                "deployment.environment": os.getenv("DEPLOYMENT_ENVIRONMENT", "dev"),
+                "service.instance.id": os.getenv("HOSTNAME", "search-router"),
+            }
+        )
         _PROVIDER = TracerProvider(resource=resource)
         exporter = OTLPSpanExporter(endpoint=endpoint, insecure=True)
         _PROVIDER.add_span_processor(BatchSpanProcessor(exporter))
@@ -74,12 +80,17 @@ def setup_telemetry(service_name: str = "search-router") -> None:
 def instrument_app(app: Any) -> None:
     """Install framework/client instrumentation after the app exists."""
     global _INSTRUMENTED
-    if _INSTRUMENTED or not _OTEL_AVAILABLE or os.getenv("OTEL_ENABLED", "false").lower() not in {"1", "true", "yes"}:
+    if (
+        _INSTRUMENTED
+        or not _OTEL_AVAILABLE
+        or os.getenv("OTEL_ENABLED", "false").lower() not in {"1", "true", "yes"}
+    ):
         return
     try:
         from opentelemetry.instrumentation.fastapi import FastAPIInstrumentor
         from opentelemetry.instrumentation.httpx import HTTPXClientInstrumentor
         from opentelemetry.instrumentation.redis import RedisInstrumentor
+
         FastAPIInstrumentor.instrument_app(app)
         HTTPXClientInstrumentor().instrument()
         RedisInstrumentor().instrument()

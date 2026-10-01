@@ -35,10 +35,15 @@ from providers.base import (
 
 from core.budget import SearchBudget
 from core.engine_health import get_engine_health_manager
-from observability.prometheus import PROVIDER_LATENCY, PROVIDER_REQUESTS, PROVIDER_RESULTS, PROVIDER_UNIQUE_RESULTS
 from core.provider_health import ProviderHealthMonitor
 from core.provider_registry import ProviderSearchQuery
 from core.source_router import FanOutPlan, ProviderPick
+from observability.prometheus import (
+    PROVIDER_LATENCY,
+    PROVIDER_REQUESTS,
+    PROVIDER_RESULTS,
+    PROVIDER_UNIQUE_RESULTS,
+)
 
 logger = logging.getLogger(__name__)
 

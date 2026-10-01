@@ -58,9 +58,10 @@ def _bootstrap_env() -> None:
     import manage_keys
 
     manage_keys._load_dotenv()
-    os.environ.setdefault(
-        "HUB_DATABASE_URL", os.getenv("E2E_DSN") or manage_keys._resolve_dsn(None)
-    )
+    # An empty HUB_DATABASE_URL= line in .env (the template default) defeats
+    # setdefault — treat empty as unset, same as _resolve_dsn does.
+    if not os.getenv("HUB_DATABASE_URL"):
+        os.environ["HUB_DATABASE_URL"] = os.getenv("E2E_DSN") or manage_keys._resolve_dsn(None)
     os.environ.setdefault("MINIO_ENDPOINT", f"http://127.0.0.1:{os.getenv('MINIO_PORT', '9000')}")
     os.environ.setdefault("MINIO_ACCESS_KEY", os.getenv("MINIO_ROOT_USER", "minioadmin"))
     os.environ.setdefault("MINIO_SECRET_KEY", os.getenv("MINIO_ROOT_PASSWORD", "minioadmin"))

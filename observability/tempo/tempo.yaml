@@ -11,7 +11,7 @@ storage:
     backend: local
     local:
       path: /tmp/tempo/traces
-override:
+overrides:
   defaults:
     metrics_generator:
       processors: []

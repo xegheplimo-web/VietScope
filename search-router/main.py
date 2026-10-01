@@ -32,9 +32,6 @@ from fastapi import Depends, FastAPI, Request
 from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
 from metrics import metrics_store, record_query
-from observability.prometheus import IN_FLIGHT, REQUEST_LATENCY, REQUESTS, prometheus_payload
-from observability.logging import configure_json_logging, request_id_var, safe_request_id
-from telemetry.tracer import instrument_app, setup_telemetry
 from models import (
     AnswerToolRequest,
     AnswerToolResponse,
@@ -52,6 +49,12 @@ from models import (
     SearchToolResponse,
     SearchType,
     Source,
+)
+from observability.logging import (
+    configure_json_logging,
+    request_id_var,
+    safe_request_id,
+    search_id_var,
 )
 from pipeline.cache import (
     TTL_SCRAPE,
@@ -85,6 +88,9 @@ from providers.searxng import (
     searxng_search,
 )
 from security.apikeys import require_api_key
+from telemetry.tracer import instrument_app, setup_telemetry
+
+from observability.prometheus import IN_FLIGHT, REQUEST_LATENCY, REQUESTS, prometheus_payload
 
 logger = logging.getLogger(__name__)
 
@@ -252,19 +258,37 @@ _AUTH_LEGACY = [Depends(require_api_key)]
 @app.middleware("http")
 async def correlation_context(request: Request, call_next):
     import uuid
+
     started = time.monotonic()
     request_id = safe_request_id(request.headers.get("X-Request-ID")) or f"req_{uuid.uuid4().hex}"
     token = request_id_var.set(request_id)
+    # Search-Id correlates all log lines of a logical search across the request
+    # lifecycle; absent or malformed it falls back to the request id so the
+    # field is never "-".
+    search_token = search_id_var.set(
+        safe_request_id(request.headers.get("Search-Id")) or request_id
+    )
     try:
         response = await call_next(request)
         route = request.scope.get("route")
         route_name = getattr(route, "path", "__unmatched__")
         duration_ms = round((time.monotonic() - started) * 1000, 1)
         response.headers["X-Request-ID"] = request_id
-        logger.info("request.completed", extra={"event": "request.completed", "method": request.method, "route": route_name, "status_code": response.status_code, "duration_ms": duration_ms, "outcome": "success" if response.status_code < 400 else "error"})
+        logger.info(
+            "request.completed",
+            extra={
+                "event": "request.completed",
+                "method": request.method,
+                "route": route_name,
+                "status_code": response.status_code,
+                "duration_ms": duration_ms,
+                "outcome": "success" if response.status_code < 400 else "error",
+            },
+        )
         return response
     finally:
         request_id_var.reset(token)
+        search_id_var.reset(search_token)
 
 
 # Low-cardinality operational metrics. Query text, URL and credentials are

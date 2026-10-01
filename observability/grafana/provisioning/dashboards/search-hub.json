@@ -1,0 +1,256 @@
+{
+  "annotations": { "list": [] },
+  "editable": true,
+  "fiscalYearStartMonth": 0,
+  "graphTooltip": 1,
+  "id": null,
+  "links": [],
+  "panels": [
+    {
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "fieldConfig": {
+        "defaults": { "unit": "reqps" },
+        "overrides": []
+      },
+      "gridPos": { "h": 8, "w": 8, "x": 0, "y": 0 },
+      "id": 1,
+      "options": {
+        "legend": { "calcs": [], "displayMode": "list", "placement": "bottom" },
+        "tooltip": { "mode": "multi", "sort": "none" }
+      },
+      "targets": [
+        {
+          "expr": "sum by (route, status) (rate(search_http_requests_total[5m]))",
+          "legendFormat": "{{route}} {{status}}",
+          "refId": "A"
+        }
+      ],
+      "title": "HTTP request rate",
+      "type": "timeseries"
+    },
+    {
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "fieldConfig": {
+        "defaults": { "unit": "none" },
+        "overrides": []
+      },
+      "gridPos": { "h": 8, "w": 8, "x": 8, "y": 0 },
+      "id": 2,
+      "options": {
+        "legend": { "calcs": [], "displayMode": "list", "placement": "bottom" },
+        "tooltip": { "mode": "multi", "sort": "none" }
+      },
+      "targets": [
+        {
+          "expr": "search_http_requests_in_flight",
+          "legendFormat": "in flight",
+          "refId": "A"
+        }
+      ],
+      "title": "Requests in flight",
+      "type": "timeseries"
+    },
+    {
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "fieldConfig": {
+        "defaults": { "unit": "reqps" },
+        "overrides": []
+      },
+      "gridPos": { "h": 8, "w": 8, "x": 16, "y": 0 },
+      "id": 3,
+      "options": {
+        "legend": { "calcs": [], "displayMode": "list", "placement": "bottom" },
+        "tooltip": { "mode": "multi", "sort": "none" }
+      },
+      "targets": [
+        {
+          "expr": "sum by (route) (rate(search_http_requests_total{status=~\"5..\"}[5m]))",
+          "legendFormat": "5xx {{route}}",
+          "refId": "A"
+        },
+        {
+          "expr": "sum by (route) (rate(search_http_requests_total{status=~\"4..\"}[5m]))",
+          "legendFormat": "4xx {{route}}",
+          "refId": "B"
+        }
+      ],
+      "title": "HTTP error rate",
+      "type": "timeseries"
+    },
+    {
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "fieldConfig": {
+        "defaults": { "unit": "s" },
+        "overrides": []
+      },
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 8 },
+      "id": 4,
+      "options": {
+        "legend": { "calcs": [], "displayMode": "list", "placement": "bottom" },
+        "tooltip": { "mode": "multi", "sort": "none" }
+      },
+      "targets": [
+        {
+          "expr": "histogram_quantile(0.95, sum by (le, route) (rate(search_http_request_duration_seconds_bucket[5m])))",
+          "legendFormat": "p95 {{route}}",
+          "refId": "A"
+        },
+        {
+          "expr": "histogram_quantile(0.50, sum by (le, route) (rate(search_http_request_duration_seconds_bucket[5m])))",
+          "legendFormat": "p50 {{route}}",
+          "refId": "B"
+        }
+      ],
+      "title": "HTTP request latency",
+      "type": "timeseries"
+    },
+    {
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "fieldConfig": {
+        "defaults": { "unit": "s" },
+        "overrides": []
+      },
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 8 },
+      "id": 5,
+      "options": {
+        "legend": { "calcs": [], "displayMode": "list", "placement": "bottom" },
+        "tooltip": { "mode": "multi", "sort": "none" }
+      },
+      "targets": [
+        {
+          "expr": "histogram_quantile(0.95, sum by (le, stage) (rate(search_pipeline_duration_seconds_bucket[5m])))",
+          "legendFormat": "p95 {{stage}}",
+          "refId": "A"
+        }
+      ],
+      "title": "Pipeline stage latency p95",
+      "type": "timeseries"
+    },
+    {
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "fieldConfig": {
+        "defaults": { "unit": "reqps" },
+        "overrides": []
+      },
+      "gridPos": { "h": 8, "w": 8, "x": 0, "y": 16 },
+      "id": 6,
+      "options": {
+        "legend": { "calcs": [], "displayMode": "list", "placement": "bottom" },
+        "tooltip": { "mode": "multi", "sort": "none" }
+      },
+      "targets": [
+        {
+          "expr": "sum by (surface, mode, outcome) (rate(search_requests_total[5m]))",
+          "legendFormat": "{{surface}} {{mode}} {{outcome}}",
+          "refId": "A"
+        }
+      ],
+      "title": "Search requests by outcome",
+      "type": "timeseries"
+    },
+    {
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "fieldConfig": {
+        "defaults": { "unit": "reqps" },
+        "overrides": []
+      },
+      "gridPos": { "h": 8, "w": 8, "x": 8, "y": 16 },
+      "id": 7,
+      "options": {
+        "legend": { "calcs": [], "displayMode": "list", "placement": "bottom" },
+        "tooltip": { "mode": "multi", "sort": "none" }
+      },
+      "targets": [
+        {
+          "expr": "sum by (reason) (rate(search_degraded_total[5m]))",
+          "legendFormat": "{{reason}}",
+          "refId": "A"
+        }
+      ],
+      "title": "Degraded searches",
+      "type": "timeseries"
+    },
+    {
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "fieldConfig": {
+        "defaults": { "unit": "reqps" },
+        "overrides": []
+      },
+      "gridPos": { "h": 8, "w": 8, "x": 16, "y": 16 },
+      "id": 8,
+      "options": {
+        "legend": { "calcs": [], "displayMode": "list", "placement": "bottom" },
+        "tooltip": { "mode": "multi", "sort": "none" }
+      },
+      "targets": [
+        {
+          "expr": "sum by (surface, lane) (rate(search_zero_results_total[5m]))",
+          "legendFormat": "{{surface}} {{lane}}",
+          "refId": "A"
+        }
+      ],
+      "title": "Zero-result searches",
+      "type": "timeseries"
+    },
+    {
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "fieldConfig": {
+        "defaults": { "unit": "s" },
+        "overrides": []
+      },
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 24 },
+      "id": 9,
+      "options": {
+        "legend": { "calcs": [], "displayMode": "list", "placement": "bottom" },
+        "tooltip": { "mode": "multi", "sort": "none" }
+      },
+      "targets": [
+        {
+          "expr": "histogram_quantile(0.95, sum by (le, provider) (rate(search_provider_request_duration_seconds_bucket[5m])))",
+          "legendFormat": "p95 {{provider}}",
+          "refId": "A"
+        }
+      ],
+      "title": "Provider latency p95",
+      "type": "timeseries"
+    },
+    {
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "fieldConfig": {
+        "defaults": { "unit": "none" },
+        "overrides": []
+      },
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 24 },
+      "id": 10,
+      "options": {
+        "legend": { "calcs": [], "displayMode": "list", "placement": "bottom" },
+        "tooltip": { "mode": "multi", "sort": "none" }
+      },
+      "targets": [
+        {
+          "expr": "histogram_quantile(0.95, sum by (le, surface) (rate(search_result_count_bucket[5m])))",
+          "legendFormat": "p95 {{surface}}",
+          "refId": "A"
+        },
+        {
+          "expr": "histogram_quantile(0.50, sum by (le, surface) (rate(search_result_count_bucket[5m])))",
+          "legendFormat": "p50 {{surface}}",
+          "refId": "B"
+        }
+      ],
+      "title": "Result count",
+      "type": "timeseries"
+    }
+  ],
+  "refresh": "30s",
+  "schemaVersion": 39,
+  "tags": ["search-hub", "vietscope"],
+  "templating": { "list": [] },
+  "time": { "from": "now-6h", "to": "now" },
+  "timepicker": {},
+  "timezone": "browser",
+  "title": "Search-Hub Overview",
+  "uid": "search-hub-overview",
+  "version": 1,
+  "weekStart": ""
+}

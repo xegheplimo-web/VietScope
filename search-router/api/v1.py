@@ -50,6 +50,8 @@ from services.geo import GeoPoint, geocode, overpass_amenities
 from services.geo_postgis import osm_pois_nearby
 from storage.business_store import BusinessStore
 
+from observability.prometheus import observe_degraded, observe_search
+
 if TYPE_CHECKING:
     from pipeline.federated_retrieval import FederatedResult
 
@@ -568,8 +570,13 @@ async def auth_check(request: Request):
 @router.post("/research", response_model=EvidencePack)
 async def research(req: ResearchRequest):
     orchestrator = _get_orchestrator()
-    pack = await orchestrator.research(req.query, req.mode.value, max_hops=req.max_hops)
+    try:
+        pack = await orchestrator.research(req.query, req.mode.value, max_hops=req.max_hops)
+    except Exception:
+        observe_degraded("research_error")
+        raise
     sources = list(pack.sources or [])
+    observe_search("/v1/research", req.mode.value, len(sources))
 
     answer = await _synthesize_answer(req.query, sources)
     claims = await extract_claims_with_llm(answer, orchestrator.inference)
@@ -693,7 +700,9 @@ async def search_v1(req: SearchRequest, request: Request):
     profile = orchestrator.query_understanding.analyze(req.query)
 
     if req.mode is not None:
-        return await _research_search(req, profile, _conversation_owner(request))
+        response = await _research_search(req, profile, _conversation_owner(request))
+        observe_search("/v1/search", req.mode, len(response.get("results") or []))
+        return response
 
     from dataclasses import asdict
 
@@ -769,6 +778,12 @@ async def search_v1(req: SearchRequest, request: Request):
                 results_with_provider.append((r, "ddgs"))
 
     results = [r for r, _ in results_with_provider]
+
+    # Search-level metrics: zero hits from the primary lane is a degradation
+    # even when the DDGS fallback covers it.
+    if searxng_count == 0:
+        observe_degraded("searxng_empty")
+    observe_search("/v1/search", "raw", len(results))
 
     if not results:
         return {"query": req.query, "understanding": asdict(profile), "results": []}
@@ -1443,6 +1458,11 @@ async def business_search(req: BusinessSearchRequest):
                 resolved_from=resolved_from,
             )
 
+    if lat is None or lon is None:
+        observe_degraded("anchor_unresolved")
+    elif not store._available:
+        observe_degraded("business_store_unavailable")
+
     if lat is not None and lon is not None and store._available:
         geo = await store.search_nearby(
             lat,
@@ -1508,6 +1528,7 @@ async def business_search(req: BusinessSearchRequest):
                 seen.add((e.name, e.source_url))
 
     evidence = [e.source_url for e in entities if e.source_url]
+    observe_search("/v1/business/search", "local", len(entities))
     return BusinessSearchResponse(
         query=req.query,
         lat=lat,

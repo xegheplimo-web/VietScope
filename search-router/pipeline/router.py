@@ -15,6 +15,8 @@ from dataclasses import dataclass, field
 
 from models import SearchCategory, SearchResultItem
 
+from observability.prometheus import observe_degraded, observe_search
+
 
 def detect_query_type(query: str) -> str:
     """Classify query type: web | research | code | factual.
@@ -387,4 +389,7 @@ async def orchestrate_search(
         time_range=time_range,
     )
     results, used = await execute_plan(plan, max_results=max_results)
+    observe_search("orchestrator", plan.family, sum(len(v) for v in results.values()))
+    if not used:
+        observe_degraded("all_providers_empty")
     return results, plan.family, used

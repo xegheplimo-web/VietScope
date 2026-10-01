@@ -207,8 +207,6 @@ services:
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: postgres
       POSTGRES_DB: postgres
-    volumes:
-      - ./firecrawl/postgres-init/01-postgis.sql:/docker-entrypoint-initdb.d/01-postgis.sql:ro
     restart: unless-stopped
     networks:
       - search-hub-net

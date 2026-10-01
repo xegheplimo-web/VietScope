@@ -146,13 +146,17 @@ async def firecrawl_health() -> bool:
     """Check if Firecrawl API is reachable and healthy.
 
     Only a 200 counts: a 404 just means the probe route is missing on this
-    build — treating it as healthy let a dead backend report green.
+    build — treating it as healthy let a dead backend report green. The
+    pinned v2.11.x build exposes no health route at all; ``/`` is its only
+    liveness signal, so the chain ends there.
     """
     try:
         async with httpx.AsyncClient(timeout=5) as client:
             resp = await client.get(f"{settings.firecrawl_url}/health")
             if resp.status_code == 404:
                 resp = await client.get(f"{settings.firecrawl_url}/v2/health")
+            if resp.status_code == 404:
+                resp = await client.get(f"{settings.firecrawl_url}/")
             return resp.status_code == 200
     except Exception:
         try:

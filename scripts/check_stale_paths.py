@@ -33,10 +33,10 @@ REPO_ROOT = Path(__file__).resolve().parent.parent
 PATTERNS = [
     re.compile(p, re.IGNORECASE)
     for p in (
-        r"F:[/\\]search-hub\b",
-        r"/f/search-hub\b",
-        r"E:[/\\]search-hub\b",
-        r"C:[/\\]users[/\\]administrator[/\\]repos[/\\]search-hub\b",
+        r"F:[/\\]+search-hub\\b",
+        r"/+f/+search-hub\\b",
+        r"E:[/\\]+search-hub\\b",
+        r"C:[/\\]+users[/\\]+administrator[/\\]+repos[/\\]+search-hub\\b",
         r"/home/ubuntu/repos/search-hub\b",
         r"xegheplimo-web[/\\]search-hub\b",
     )

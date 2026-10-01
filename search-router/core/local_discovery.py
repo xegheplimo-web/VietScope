@@ -128,9 +128,7 @@ def entity_supports_specialty(
     entity: BusinessEntity, specialty: str, variants: tuple[str, ...]
 ) -> bool:
     """True when the entity's name/description/address mention the specialty."""
-    all_text = _norm_text(
-        f"{entity.name} {entity.description} {entity.address}"
-    )
+    all_text = _norm_text(f"{entity.name} {entity.description} {entity.address}")
     forms = (specialty,) + variants
     return any(form in all_text for form in forms)
 

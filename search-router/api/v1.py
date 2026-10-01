@@ -24,7 +24,6 @@ from core.engine_health import get_engine_health_manager
 from core.entity_resolver import resolve_entities
 from core.local_discovery import (
     dedupe_local_candidates,
-    entity_supports_specialty,
     evaluate_local_quality,
     expand_local_query,
     extract_specialty,

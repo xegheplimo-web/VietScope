@@ -17,7 +17,7 @@ logger = logging.getLogger(__name__)
 
 NOMINATIM_URL = "https://nominatim.openstreetmap.org/search"
 OVERPASS_URL = "https://overpass-api.de/api/interpreter"
-_UA = {"User-Agent": "SearchHub/3.0 (VietScope; github.com/xegheplimo-web/search-hub)"}
+_UA = {"User-Agent": "VietScope/3.0 (github.com/xegheplimo-web/VietScope)"}
 _GEOCODE_TIMEOUT = 8.0
 _OVERPASS_TIMEOUT = 15.0
 

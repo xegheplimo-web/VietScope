@@ -10,7 +10,7 @@ For external clients: Hermes, Vane, or any third-party consumer of the
 ## 0. Prerequisites
 
 ```bash
-docker compose up -d          # from F:\Search-Hub — starts the whole stack
+docker compose up -d          # from the repo root (F:\VietScope-main) — starts the whole stack
 docker compose ps             # search-router should be healthy on :8888
 ```
 

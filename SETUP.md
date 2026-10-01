@@ -14,7 +14,8 @@
   Places · Business · Social · Entities · Data API (domain tương lai
   `api.vietscope…`, `developers.vietscope…`).
 - **Search-Hub** = tên repo + stack nội bộ — giữ nguyên trong mọi tham chiếu
-  hạ tầng/code: thư mục `F:\Search-Hub`, container `search-hub-*`, network
+  hạ tầng/code: thư mục dev hiện hành `F:\VietScope-main`, container
+  `search-hub-*`, network
   `search-hub-net`, env `SEARCH_HUB_*`, tên service `search-hub` trong
   response `/v1/health`.
 

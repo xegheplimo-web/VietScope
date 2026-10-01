@@ -1,10 +1,13 @@
-# Search-Hub — Working Rules for Agents
+# VietScope / Search-Hub — Working Rules for Agents
 
-Search-Hub is a self-hosted search + data-acquisition stack. **VietScope** is
-the commercial product name — use it for the public API surface and
-product-facing docs (`docs/api/*`, STATUS title). "Search-Hub" stays the
-internal name: repo, containers (`search-hub-*`), network (`search-hub-net`),
-env vars (`SEARCH_HUB_*`, `HUB_*`), paths.
+**VietScope** is the repository and product name. Use the current checkout
+(`F:\\VietScope-main` on the canonical Windows dev box) or derive
+`<repo-root>` from the running script; never hardcode a legacy checkout or
+repository slug. **Search-Hub** remains only as an internal compatibility name
+for existing infrastructure identifiers such as containers (`search-hub-*`),
+network (`search-hub-net`), Compose project name, health-service value, and
+env vars (`SEARCH_HUB_*`, `HUB_*`). Renaming those identifiers is a separate
+infrastructure migration.
 
 Canonical architecture: [`ARCHITECTURE.md`](ARCHITECTURE.md) — read it first
 for service map, ports, and data flow. This file holds rules and commands,

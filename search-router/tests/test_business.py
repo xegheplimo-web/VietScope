@@ -483,3 +483,140 @@ class TestOverpassParsing:
         boom = AsyncMock(side_effect=httpx.ConnectError("down"))
         with patch("httpx.AsyncClient.get", new=boom):
             assert asyncio.run(geocode("Sài Gòn")) is None
+
+
+# ─── LOCAL-1: hedged lanes + quality gate ────────────────────────────────────
+
+
+class TestLocalDiscoveryHedging:
+    def _post(self, **payload):
+        app = FastAPI()
+        from api.v1 import router
+
+        app.include_router(router)
+        return TestClient(app).post("/v1/business/search", json=payload)
+
+    @staticmethod
+    def _poi(i: int, **kw) -> BusinessEntity:
+        kw.setdefault("category", "restaurant")
+        kw.setdefault("lat", 21.2135 + i * 0.001)
+        kw.setdefault("lon", 106.1488)
+        kw.setdefault("source_url", f"https://www.openstreetmap.org/node/{i}")
+        return BusinessEntity(name=f"Quán Ăn Yên Dũng {i}", **kw)
+
+    def test_satisfied_gate_skips_web_and_overpass(self):
+        """osm_local alone meets the gate → no Overpass, no orchestrator call."""
+        pois = [self._poi(i) for i in range(5)]
+        overpass = AsyncMock(return_value=[])
+        with (
+            patch("api.v1.osm_pois_nearby", new=AsyncMock(return_value=pois)),
+            patch("api.v1.overpass_amenities", new=overpass),
+            patch("api.v1._get_orchestrator") as mock_orch,
+        ):
+            mock_orch.return_value.search = AsyncMock(return_value=Mock(sources=[]))
+            resp = self._post(query="quán ăn Yên Dũng", lat=21.2135, lon=106.1488, limit=20)
+        assert resp.status_code == 200
+        data = resp.json()
+        assert data["provider"] == "osm_local"
+        assert data["count"] == 5
+        overpass.assert_not_awaited()
+        mock_orch.return_value.search.assert_not_awaited()
+        e = data["entities"][0]
+        assert e["origin"] == "osm_local"
+        assert e["verified"] is False
+        assert e["location_precision"] == "exact"
+
+    def test_canonical_lane_satisfies_gate(self):
+        pois = [self._poi(i) for i in range(5)]
+        store = Mock()
+        store._available = True
+        store.search_nearby = AsyncMock(return_value=pois)
+        overpass = AsyncMock(return_value=[])
+        with (
+            patch("api.v1.BusinessStore", return_value=store),
+            patch("api.v1.osm_pois_nearby", new=AsyncMock(return_value=[])),
+            patch("api.v1.overpass_amenities", new=overpass),
+            patch("api.v1._get_orchestrator") as mock_orch,
+        ):
+            mock_orch.return_value.search = AsyncMock(return_value=Mock(sources=[]))
+            resp = self._post(query="quán ăn Yên Dũng", lat=21.2135, lon=106.1488, limit=20)
+        assert resp.status_code == 200
+        data = resp.json()
+        assert data["provider"] == "geo"
+        assert data["entities"][0]["origin"] == "canonical"
+        assert data["entities"][0]["verified"] is True
+        overpass.assert_not_awaited()
+        mock_orch.return_value.search.assert_not_awaited()
+
+    def test_empty_local_lanes_widen_to_web(self):
+        class DummyOrchestrator:
+            inference = None
+
+            async def search(self, query, mode, progress=None):
+                return EvidencePack(
+                    answer="",
+                    budget_used=budget_for_mode(mode),
+                    sources=[
+                        Source(
+                            source_id="s1",
+                            url="https://example.com/pho-hoa",
+                            content=(
+                                "Quán Phở Hòa\nĐịa chỉ: 12 Lê Lợi, Yên Dũng\nSĐT: 0987 654 321"
+                            ),
+                        )
+                    ],
+                )
+
+        with (
+            patch("api.v1.osm_pois_nearby", new=AsyncMock(return_value=[])),
+            patch("api.v1.overpass_amenities", new=AsyncMock(return_value=[])),
+            patch("api.v1._get_orchestrator", return_value=DummyOrchestrator()),
+        ):
+            resp = self._post(query="quán ăn Yên Dũng", lat=21.2135, lon=106.1488, limit=20)
+        assert resp.status_code == 200
+        data = resp.json()
+        assert "web" in data["provider"]
+        assert data["count"] >= 1
+        assert data["entities"][0]["origin"] == "web_discovery"
+        assert data["entities"][0]["location_precision"] == "street"
+
+    def test_lane_exception_degrades_to_empty(self):
+        """A lane raising must not fail the request — degrade, widen, return."""
+        boom = AsyncMock(side_effect=RuntimeError("pg down"))
+        with (
+            patch("api.v1.osm_pois_nearby", new=boom),
+            patch("api.v1.overpass_amenities", new=AsyncMock(return_value=[])),
+            patch("api.v1._get_orchestrator") as mock_orch,
+        ):
+            mock_orch.return_value.search = AsyncMock(return_value=Mock(sources=[]))
+            mock_orch.return_value.inference = None
+            resp = self._post(query="quán ăn Yên Dũng", lat=21.2135, lon=106.1488, limit=20)
+        assert resp.status_code == 200
+        assert resp.json()["provider"] == "web"
+
+    def test_expansion_tagged_when_variant_finds_new_source(self):
+        class DummyOrchestrator:
+            inference = None
+
+            async def search(self, query, mode, progress=None):
+                url = (
+                    "https://example.com/pho-hoa"
+                    if query == "quán phở Yên Dũng"
+                    else "https://variant.example.com/nha-hang"
+                )
+                return EvidencePack(
+                    answer="",
+                    budget_used=budget_for_mode(mode),
+                    sources=[Source(source_id="s1", url=url, content="Quán A\nSĐT: 091")],
+                )
+
+        with (
+            patch("api.v1.osm_pois_nearby", new=AsyncMock(return_value=[])),
+            patch("api.v1.overpass_amenities", new=AsyncMock(return_value=[])),
+            patch("api.v1._get_orchestrator", return_value=DummyOrchestrator()),
+        ):
+            resp = self._post(query="quán phở Yên Dũng", lat=21.2135, lon=106.1488, limit=20)
+        assert resp.status_code == 200
+        data = resp.json()
+        assert "local_expand" in data["provider"]
+        assert "web" in data["provider"]

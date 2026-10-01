@@ -10,6 +10,7 @@ import asyncio
 import contextlib
 import json
 import re
+import time
 import uuid
 from datetime import UTC, datetime
 from typing import TYPE_CHECKING, Literal
@@ -21,6 +22,16 @@ from core.business_entity import extract_business_batch, osm_tag_for, osm_tag_kv
 from core.conversation import get_conversation_manager, resolve_request_query
 from core.engine_health import get_engine_health_manager
 from core.entity_resolver import resolve_entities
+from core.local_discovery import (
+    dedupe_local_candidates,
+    entity_supports_specialty,
+    evaluate_local_quality,
+    expand_local_query,
+    extract_specialty,
+    locality_of,
+    run_local_lane,
+    tag_lane_origin,
+)
 from core.orchestrator import SearchOrchestrator
 from core.provider_registry import create_default_registry
 from evidence.citation import build_passages
@@ -50,7 +61,13 @@ from services.geo import GeoPoint, geocode, overpass_amenities
 from services.geo_postgis import osm_pois_nearby
 from storage.business_store import BusinessStore
 
-from observability.prometheus import observe_degraded, observe_search
+from observability.prometheus import (
+    observe_degraded,
+    observe_local_candidates,
+    observe_local_outcome,
+    observe_local_widen,
+    observe_search,
+)
 
 if TYPE_CHECKING:
     from pipeline.federated_retrieval import FederatedResult
@@ -1444,12 +1461,19 @@ async def _resolve_geo_anchor(query: str) -> tuple[GeoPoint | None, str]:
 
 @router.post("/business/search", response_model=BusinessSearchResponse)
 async def business_search(req: BusinessSearchRequest):
-    """Local business search: anchor → PostGIS → OSM → web-extract."""
+    """Local business search: anchor → hedged local lanes → widen → web-extract.
+
+    LOCAL-1: the fast local lanes (canonical store, osm_pois mirror, query
+    expansion) run concurrently at t=0; the local quality gate then decides
+    whether the request widens to live Overpass + web extraction.
+    """
+    t0 = time.perf_counter()
     store = BusinessStore()
-    entities: list[BusinessEntity] = []
+    candidates: list[BusinessEntity] = []
     lanes: list[str] = []
     lat, lon = req.lat, req.lon
     anchor: GeoAnchor | None = None
+    first_result_at: float | None = None
 
     if lat is None or lon is None:
         point, resolved_from = await _resolve_geo_anchor(req.query)
@@ -1468,69 +1492,136 @@ async def business_search(req: BusinessSearchRequest):
     elif not store._available:
         observe_degraded("business_store_unavailable")
 
-    if lat is not None and lon is not None and store._available:
-        geo = await store.search_nearby(
-            lat,
-            lon,
-            req.radius_km,
-            req.category,
-            req.limit,
-        )
-        if geo:
-            lanes.append("geo")
-            entities.extend(geo)
+    specialty, specialty_variants = extract_specialty(req.query)
+    variants = expand_local_query(req.query)
+    locality = locality_of(req.query)
 
-    if lat is not None and lon is not None and len(entities) < req.limit:
-        local = await osm_pois_nearby(
-            lat,
-            lon,
-            req.radius_km,
-            tag_kv=osm_tag_kv(req.category or req.query),
-            limit=req.limit - len(entities),
-        )
-        if local:
-            lanes.append("osm_local")
-            seen = {(e.name, e.source_url) for e in entities}
-            for e in local:
-                if (e.name, e.source_url) not in seen and len(entities) < req.limit:
-                    entities.append(e)
-                    seen.add((e.name, e.source_url))
+    def _mark_first(done: float, results: list) -> None:
+        nonlocal first_result_at
+        if results and (first_result_at is None or done < first_result_at):
+            first_result_at = done
 
-    if lat is not None and lon is not None and len(entities) < req.limit:
-        osm = await overpass_amenities(
-            lat,
-            lon,
-            req.radius_km,
-            osm_tag_for(req.category or req.query),
-            limit=req.limit - len(entities),
+    # ── t=0: fast local lanes run concurrently; any lane may degrade to [] ──
+    local_jobs = []
+    if lat is not None and lon is not None:
+        if store._available:
+            local_jobs.append(
+                run_local_lane(
+                    "geo",
+                    store.search_nearby(lat, lon, req.radius_km, req.category, req.limit),
+                )
+            )
+        local_jobs.append(
+            run_local_lane(
+                "osm_local",
+                osm_pois_nearby(
+                    lat,
+                    lon,
+                    req.radius_km,
+                    tag_kv=osm_tag_kv(req.category or req.query),
+                    limit=req.limit,
+                ),
+            )
         )
-        if osm:
-            lanes.append("osm")
-            seen = {(e.name, e.source_url) for e in entities}
-            for e in osm:
-                if (e.name, e.source_url) not in seen and len(entities) < req.limit:
-                    entities.append(e)
-                    seen.add((e.name, e.source_url))
+    for name, results, done in await asyncio.gather(*local_jobs):
+        tag_lane_origin(results, "canonical" if name == "geo" else name)
+        if results:
+            lanes.append(name)
+        _mark_first(done, results)
+        candidates.extend(results)
 
-    needed = max(0, req.limit - len(entities))
-    if needed > 0:
-        orchestrator = _get_orchestrator()
-        pack = await orchestrator.search(req.query, "fast")
-        sources = [s for s in pack.sources or [] if s.content]
-        contents = [s.content for s in sources]
-        urls = [s.url for s in sources]
-        extras = await extract_business_batch(
-            contents,
-            req.query,
-            llm=orchestrator.inference,
-            source_urls=urls,
+    entities = dedupe_local_candidates(candidates)
+    sufficient, reason = evaluate_local_quality(
+        entities,
+        requested_limit=req.limit,
+        specialty=specialty,
+        specialty_variants=specialty_variants,
+    )
+
+    if not sufficient:
+        widen_reason = (
+            "anchor_unresolved"
+            if lat is None or lon is None
+            else "store_unavailable"
+            if not store._available
+            else reason
         )
-        lanes.append("web")
-        seen = {(e.name, e.source_url) for e in entities}
-        for e in extras:
-            if (e.name, e.source_url) not in seen and len(entities) < req.limit:
-                entities.append(e)
-                seen.add((e.name, e.source_url))
+        observe_local_widen(widen_reason)
+
+        expand_hit = False
+
+        async def _web_lane() -> list[BusinessEntity]:
+            nonlocal expand_hit
+            orchestrator = _get_orchestrator()
+
+            async def _extract(q: str):
+                pack = await orchestrator.search(q, "fast")
+                sources = [s for s in pack.sources or [] if s.content]
+                extras = await extract_business_batch(
+                    [s.content for s in sources],
+                    q,
+                    llm=orchestrator.inference,
+                    source_urls=[s.url for s in sources],
+                )
+                return q, {s.url for s in sources}, extras
+
+            # original + best variant — at most 2 orchestrator calls total
+            settled = await asyncio.gather(
+                *(_extract(q) for q in variants[:2]), return_exceptions=True
+            )
+            orig_urls: set[str] = set()
+            variant_urls: set[str] = set()
+            collected: list[BusinessEntity] = []
+            for i, res in enumerate(settled):
+                if isinstance(res, BaseException):
+                    continue
+                _q, urls, extras = res
+                (orig_urls if i == 0 else variant_urls).update(urls)
+                collected.extend(extras)
+            # expansion "ran" only when a variant surfaced sources the
+            # original query did not — keeps the provider string honest.
+            novel = variant_urls - orig_urls
+            if any((e.source_url or "") in novel for e in collected):
+                expand_hit = True
+            return collected
+
+        widen_jobs = []
+        if lat is not None and lon is not None:
+            widen_jobs.append(
+                run_local_lane(
+                    "osm",
+                    overpass_amenities(
+                        lat,
+                        lon,
+                        req.radius_km,
+                        osm_tag_for(req.category or req.query),
+                        limit=req.limit,
+                    ),
+                )
+            )
+        widen_jobs.append(run_local_lane("web", _web_lane()))
+        for name, results, done in await asyncio.gather(*widen_jobs):
+            tag_lane_origin(
+                results,
+                "osm_live" if name == "osm" else "web_discovery",
+                locality=locality,
+            )
+            if name == "web":
+                if expand_hit:
+                    lanes.append("local_expand")
+                lanes.append("web")
+            elif results:
+                lanes.append(name)
+            _mark_first(done, results)
+            candidates.extend(results)
+        entities = dedupe_local_candidates(candidates)
+
+    observe_local_candidates(len(candidates), len(entities))
+    entities = entities[: req.limit]
+
+    total_ms = (time.perf_counter() - t0) * 1000.0
+    first_ms = (first_result_at - t0) * 1000.0 if first_result_at is not None else None
+    observe_local_outcome(total_ms, first_ms, len(entities))
 
     evidence = [e.source_url for e in entities if e.source_url]
     observe_search("/v1/business/search", "local", len(entities))

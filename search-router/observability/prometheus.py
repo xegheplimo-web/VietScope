@@ -55,6 +55,47 @@ COMPONENT_LATENCY = Histogram(
 )
 IN_FLIGHT = Gauge("search_http_requests_in_flight", "Requests in flight")
 
+# ─── LOCAL-1: bounded local discovery ────────────────────────────────────────
+# ``lane`` ∈ {geo, osm_local, osm, web}; ``reason`` ∈ {insufficient_useful,
+# anchor_unresolved, store_unavailable} — both vocabularies stay bounded.
+LOCAL_QUERY_EXPANSIONS = Counter(
+    "local_query_expansions_total",
+    "Local queries that produced expansion variants beyond the original",
+)
+LOCAL_LANE_LATENCY = Histogram(
+    "local_lane_latency_seconds",
+    "Local discovery lane latency",
+    ["lane"],
+    buckets=(0.01, 0.05, 0.1, 0.25, 0.5, 1, 2, 5, 10, 30),
+)
+LOCAL_RESULTS = Counter(
+    "local_results_total", "Entities returned per local discovery lane", ["lane"]
+)
+LOCAL_WIDEN = Counter(
+    "local_widen_total", "Local searches widened beyond the fast lanes", ["reason"]
+)
+LOCAL_CANDIDATES_BEFORE = Histogram(
+    "local_candidates_before_dedup",
+    "Local candidates collected before dedup",
+    buckets=(0, 1, 2, 5, 10, 20, 50, 100, 200),
+)
+LOCAL_CANDIDATES_AFTER = Histogram(
+    "local_candidates_after_dedup",
+    "Local candidates surviving dedup",
+    buckets=(0, 1, 2, 5, 10, 20, 50, 100, 200),
+)
+LOCAL_ZERO_RESULTS = Counter("local_zero_result_total", "Local searches returning no entities")
+LOCAL_TOTAL_MS = Histogram(
+    "local_total_ms",
+    "Local search total latency",
+    buckets=(10, 50, 100, 250, 500, 1000, 2000, 5000, 15000, 30000, 60000),
+)
+LOCAL_FIRST_RESULT_MS = Histogram(
+    "local_first_result_ms",
+    "Local search time to first non-empty lane",
+    buckets=(10, 50, 100, 250, 500, 1000, 2000, 5000, 15000, 30000),
+)
+
 
 def prometheus_payload() -> tuple[bytes, str]:
     return generate_latest(), CONTENT_TYPE_LATEST
@@ -72,3 +113,29 @@ def observe_degraded(reason: str) -> None:
     # full value is more useful than a truncated one and cardinality stays
     # bounded regardless.
     DEGRADED.labels(reason).inc()
+
+
+def observe_local_expansion() -> None:
+    LOCAL_QUERY_EXPANSIONS.inc()
+
+
+def observe_local_lane(lane: str, seconds: float, results: int) -> None:
+    LOCAL_LANE_LATENCY.labels(lane).observe(seconds)
+    LOCAL_RESULTS.labels(lane).inc(results)
+
+
+def observe_local_widen(reason: str) -> None:
+    LOCAL_WIDEN.labels(reason).inc()
+
+
+def observe_local_candidates(before: int, after: int) -> None:
+    LOCAL_CANDIDATES_BEFORE.observe(before)
+    LOCAL_CANDIDATES_AFTER.observe(after)
+
+
+def observe_local_outcome(total_ms: float, first_result_ms: float | None, results: int) -> None:
+    LOCAL_TOTAL_MS.observe(total_ms)
+    if first_result_ms is not None:
+        LOCAL_FIRST_RESULT_MS.observe(first_result_ms)
+    if not results:
+        LOCAL_ZERO_RESULTS.inc()

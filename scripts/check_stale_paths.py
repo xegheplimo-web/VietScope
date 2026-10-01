@@ -62,16 +62,23 @@ PRUNE_DIRS = {
 SKIP_FILES = {"CHANGELOG.md", "check_stale_paths.py"}
 
 
+def _iter_files() -> list[Path]:
+    """Return scannable files while pruning excluded trees before descent."""
+    files: list[Path] = []
+    for root, dirs, names in os.walk(REPO_ROOT, topdown=True):
+        dirs[:] = sorted(d for d in dirs if d not in PRUNE_DIRS)
+        root_path = Path(root)
+        for name in sorted(names):
+            if name in SKIP_FILES:
+                continue
+            files.append(root_path / name)
+    return files
+
+
 def main() -> int:
     hits: list[str] = []
-    for path in sorted(REPO_ROOT.rglob("*")):
-        if not path.is_file():
-            continue
+    for path in _iter_files():
         rel = path.relative_to(REPO_ROOT)
-        if any(part in PRUNE_DIRS for part in rel.parts):
-            continue
-        if path.name in SKIP_FILES:
-            continue
         try:
             text = path.read_text(encoding="utf-8")
         except (UnicodeDecodeError, OSError):

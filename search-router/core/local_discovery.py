@@ -285,14 +285,22 @@ def _category_compatible(cat: str, target: str) -> bool:
     return cat in _FOODISH_CATEGORIES and target in _FOODISH_CATEGORIES
 
 
-def _query_relevant(e: BusinessEntity, target_category: str) -> bool:
-    """The entity's own evidence supports the query's category intent."""
-    if not target_category:
-        return False
-    if _category_compatible((e.category or "").strip(), target_category):
-        return True
-    inferred = category_for(f"{e.name} {e.description} {e.address}")
-    return _category_compatible(inferred, target_category)
+def _query_relevant(e: BusinessEntity, query: str, target_category: str) -> bool:
+    """The entity's own evidence supports the query's intent.
+
+    Category match when a target category was inferred; otherwise the
+    entity's name must surface in the query — brand/place-name lookups
+    ("Circle K gần tôi") classify to nothing, so without name evidence
+    the gate would widen on every such request.
+    """
+    if target_category:
+        if _category_compatible((e.category or "").strip(), target_category):
+            return True
+        inferred = category_for(f"{e.name} {e.description} {e.address}")
+        if _category_compatible(inferred, target_category):
+            return True
+    q_tokens = set(fold(query).split())
+    return any(len(tok) >= 3 and tok in q_tokens for tok in fold(e.name or "").split())
 
 
 def evaluate_local_quality(
@@ -308,8 +316,9 @@ def evaluate_local_quality(
 
     ``useful`` = named entities that carry coordinates AND (a category OR a
     canonical/local-lane origin). When ``query``/``category`` is given the
-    entity must also look relevant to that intent — nearby-but-unrelated
-    canonical rows must not close the gate. When a specialty is present,
+    entity must also look relevant to that intent — a compatible category,
+    or its name appearing in the query — nearby-but-unrelated canonical rows
+    must not close the gate. When a specialty is present,
     generic category matches do NOT count — only entities whose
     name/description/address mention the specialty are useful.
 
@@ -334,7 +343,7 @@ def evaluate_local_quality(
             if entity_supports_specialty(e, specialty, specialty_variants):
                 useful += 1
         elif query or category:
-            if _query_relevant(e, target_category):
+            if _query_relevant(e, query, target_category):
                 useful += 1
         elif (e.category or "").strip() or e.origin in _LOCAL_LANE_ORIGINS:
             useful += 1

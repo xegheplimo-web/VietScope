@@ -313,12 +313,32 @@ class TestQueryAwareQualityGate:
         ok, _ = evaluate_local_quality(ents, requested_limit=3, query="nhà thuốc Yên Dũng")
         assert ok is True
 
+    def test_brand_query_named_entity_counts(self):
+        ents = [
+            _ent("Circle K - Hàng Bài", category="convenience", lat=21.21, lon=106.14),
+            _ent("StarMart", category="convenience", lat=21.22, lon=106.15),
+        ]
+        ok, reason = evaluate_local_quality(ents, requested_limit=1, query="circle k gần tôi")
+        assert ok is True
+        assert reason == "sufficient"
+
+    def test_brand_query_unnamed_entities_do_not_close_gate(self):
+        ents = [
+            _ent("StarMart A", category="convenience", lat=21.21, lon=106.14),
+            _ent("7-Eleven B", category="convenience", lat=21.22, lon=106.15),
+            _ent("Minimart C", category="store", lat=21.23, lon=106.16),
+        ]
+        ok, reason = evaluate_local_quality(ents, requested_limit=3, query="circle k gần tôi")
+        assert ok is False
+        assert reason == "insufficient_useful"
+
 
 class TestCategoryHelpers:
     def test_empty_inputs(self):
         assert _category_compatible("", "restaurant") is False
         assert _category_compatible("cafe", "") is False
-        assert _query_relevant(_ent("A"), "") is False
+        assert _query_relevant(_ent("A"), "", "") is False
+        assert _query_relevant(_ent("A"), "circle k", "") is False
 
     def test_food_family_compatible(self):
         assert _category_compatible("cafe", "restaurant") is True
@@ -326,8 +346,14 @@ class TestCategoryHelpers:
 
     def test_query_relevant_inferred(self):
         e = _ent("Nhà Thuốc Tâm An", category="", description="bán thuốc")
-        assert _query_relevant(e, "pharmacy") is True
-        assert _query_relevant(e, "restaurant") is False
+        assert _query_relevant(e, "", "pharmacy") is True
+        assert _query_relevant(e, "", "restaurant") is False
+
+    def test_query_relevant_by_name(self):
+        e = _ent("Circle K - Hoàn Kiếm", category="convenience")
+        assert _query_relevant(e, "circle k gần tôi", "") is True
+        other = _ent("StarMart - Hoàn Kiếm", category="convenience")
+        assert _query_relevant(other, "circle k gần tôi", "") is False
 
 
 class TestFoldedSpecialty:

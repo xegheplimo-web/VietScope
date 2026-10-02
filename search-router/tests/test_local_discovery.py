@@ -2,9 +2,12 @@
 
 import pytest
 from core.local_discovery import (
+    _category_compatible,
+    _query_relevant,
     dedupe_local_candidates,
     evaluate_local_quality,
     expand_local_query,
+    extract_specialty,
     local_quality_sufficient,
     locality_of,
     tag_lane_origin,
@@ -274,3 +277,70 @@ class TestLaneOriginContract:
         assert e.verified is False
         assert e.location_precision == "unknown"
         assert e.supporting_source_count == 1
+
+
+# ─── query-aware quality gate + folded matching ───────────────────────────────
+
+
+class TestQueryAwareQualityGate:
+    """evaluate_local_quality with query/category must filter by relevance."""
+
+    def test_category_param_classified(self):
+        ents = [
+            _ent("Nhà Thuốc A", category="pharmacy", lat=21.21, lon=106.14),
+            _ent("Nhà Thuốc B", category="pharmacy", lat=21.22, lon=106.15),
+            _ent("Nhà Thuốc C", category="pharmacy", lat=21.23, lon=106.16),
+        ]
+        ok, reason = evaluate_local_quality(ents, requested_limit=3, category="nhà thuốc")
+        assert ok is True and reason == "sufficient"
+
+    def test_irrelevant_entities_do_not_close_gate(self):
+        ents = [
+            _ent("Nhà Thuốc A", category="pharmacy", lat=21.21, lon=106.14),
+            _ent("Nhà Thuốc B", category="pharmacy", lat=21.22, lon=106.15),
+            _ent("Nhà Thuốc C", category="pharmacy", lat=21.23, lon=106.16),
+        ]
+        # restaurant intent + pharmacy rows → not useful → insufficient
+        ok, reason = evaluate_local_quality(ents, requested_limit=3, query="quán ăn Yên Dũng")
+        assert ok is False and reason == "insufficient_useful"
+
+    def test_inferred_category_from_name(self):
+        ents = [
+            _ent("Nhà Thuốc Tâm An", category="", lat=21.21, lon=106.14),
+            _ent("Nhà Thuốc Bình An", category="", lat=21.22, lon=106.15),
+            _ent("Hiệu Thuốc C", category="", lat=21.23, lon=106.16),
+        ]
+        ok, _ = evaluate_local_quality(ents, requested_limit=3, query="nhà thuốc Yên Dũng")
+        assert ok is True
+
+
+class TestCategoryHelpers:
+    def test_empty_inputs(self):
+        assert _category_compatible("", "restaurant") is False
+        assert _category_compatible("cafe", "") is False
+        assert _query_relevant(_ent("A"), "") is False
+
+    def test_food_family_compatible(self):
+        assert _category_compatible("cafe", "restaurant") is True
+        assert _category_compatible("pharmacy", "restaurant") is False
+
+    def test_query_relevant_inferred(self):
+        e = _ent("Nhà Thuốc Tâm An", category="", description="bán thuốc")
+        assert _query_relevant(e, "pharmacy") is True
+        assert _query_relevant(e, "restaurant") is False
+
+
+class TestFoldedSpecialty:
+    def test_accentless_specialty_matches(self):
+        specialty, variants = extract_specialty("gio cha Yen Dung")
+        assert specialty == "giò chả"
+        assert variants
+
+    def test_standalone_specialty_expands(self):
+        out = expand_local_query("giò chả Yên Dũng")
+        assert out[0] == "giò chả Yên Dũng"
+        assert len(out) > 1
+
+    def test_no_specialty(self):
+        specialty, variants = extract_specialty("quán ăn Hà Nội")
+        assert specialty is None and variants == ()

@@ -13,6 +13,8 @@ from collections.abc import Iterable
 
 from models import BusinessEntity
 
+from core.entity_resolver import fold
+
 logger = logging.getLogger(__name__)
 
 _SEMAPHORE = asyncio.Semaphore(4)
@@ -108,6 +110,13 @@ _OSM_TAG = {
     "guest_house": ("tourism", "guest_house"),
     "hairdresser": ("shop", "hairdresser"),
 }
+
+# Folded markers so accentless text ("nha thuoc", "cay xang") classifies
+# into the same taxonomy — mirrors the accent-folded matching contract of
+# the local-discovery path.
+_FOLDED_BUSINESS_CATEGORIES = tuple(
+    (fold(marker), cat) for marker, cat in _BUSINESS_CATEGORIES.items()
+)
 
 
 _EXAMPLE_JSON = """
@@ -329,6 +338,10 @@ def _infer_category(text: str, query: str) -> str:
     combined = f"{query} {text[:500]}".lower()
     for marker, cat in _BUSINESS_CATEGORIES.items():
         if marker in combined:
+            return cat
+    folded = fold(combined)
+    for marker, cat in _FOLDED_BUSINESS_CATEGORIES:
+        if marker in folded:
             return cat
     return ""
 

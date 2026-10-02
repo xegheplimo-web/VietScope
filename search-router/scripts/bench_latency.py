@@ -31,13 +31,13 @@ QUERIES = [
     {"endpoint": "/v1/search", "query": "cà phê ngon Hà Nội", "type": "web"},
     {"endpoint": "/v1/search", "query": "thời tiết Hà Nội hôm nay", "type": "web"},
     {"endpoint": "/v1/search", "query": "giá vàng hôm nay", "type": "web"},
-    # Places
-    {"endpoint": "/v1/places/search", "query": "bún chả Hà Nội", "type": "places"},
-    {"endpoint": "/v1/places/search", "query": "tiệm thuốc gần đây", "type": "places"},
+    # Places — GET with query params (q), returns a bare list
+    {"endpoint": "/v1/places/search", "method": "get", "q": "bún chả Hà Nội", "type": "places"},
+    {"endpoint": "/v1/places/search", "method": "get", "q": "tiệm thuốc gần đây", "type": "places"},
     # News
     {"endpoint": "/v1/news", "query": "tin tức mới nhất", "type": "news"},
-    # Fetch
-    {"endpoint": "/v1/fetch", "url": "https://vnexpress.net", "type": "fetch"},
+    # Fetch — the read endpoint, POST {"url": ...}
+    {"endpoint": "/v1/read", "url": "https://vnexpress.net", "type": "fetch"},
     # Research
     {"endpoint": "/v1/research", "query": "tình hình kinh tế Việt Nam 2026", "type": "research"},
     {"endpoint": "/v1/research", "query": "chính sách tiền mới nhất", "type": "research"},
@@ -49,6 +49,7 @@ async def measure_endpoint(
     client: httpx.AsyncClient,
     endpoint: str,
     payload: dict[str, Any],
+    method: str = "post",
     repeats: int = REPEATS,
 ) -> dict[str, Any]:
     """Đo latency một endpoint với N repeats."""
@@ -59,20 +60,29 @@ async def measure_endpoint(
     for _ in range(repeats):
         try:
             t0 = time.perf_counter()
-            resp = await client.post(
-                f"{BASE_URL}{endpoint}",
-                json=payload,
-                timeout=TIMEOUT_S,
-            )
+            if method == "get":
+                resp = await client.get(
+                    f"{BASE_URL}{endpoint}",
+                    params=payload,
+                    timeout=TIMEOUT_S,
+                )
+            else:
+                resp = await client.post(
+                    f"{BASE_URL}{endpoint}",
+                    json=payload,
+                    timeout=TIMEOUT_S,
+                )
             elapsed_ms = (time.perf_counter() - t0) * 1000
-            latencies.append(elapsed_ms)
 
             if resp.status_code == 200:
+                # Failed probes must not skew p50/p95 — count them as errors.
+                latencies.append(elapsed_ms)
                 data = resp.json()
-                if endpoint == "/v1/places/search":
-                    result_count = len(data.get("results", []))
-                elif endpoint == "/v1/fetch":
-                    result_count = 1 if data.get("content") else 0
+                if isinstance(data, list):
+                    # e.g. GET /v1/places/search returns a bare list
+                    result_count = len(data)
+                elif endpoint == "/v1/read":
+                    result_count = 1 if data.get("passages") else 0
                 else:
                     result_count = len(data.get("results", []))
             else:
@@ -112,7 +122,7 @@ async def measure_endpoint(
 
 
 async def main() -> None:
-    print(f"🔍 P1 Baseline Latency Measurement")
+    print("🔍 P1 Baseline Latency Measurement")
     print(f"   Base URL: {BASE_URL}")
     print(f"   Repeats: {REPEATS}")
     print(f"   Queries: {len(QUERIES)}")
@@ -134,18 +144,23 @@ async def main() -> None:
 
         for i, q in enumerate(QUERIES, 1):
             endpoint = q["endpoint"]
-            payload = {k: v for k, v in q.items() if k not in ("endpoint", "type")}
+            method = q.get("method", "post")
+            payload = {k: v for k, v in q.items() if k not in ("endpoint", "type", "method")}
             qtype = q.get("type", "unknown")
 
-            print(f"  [{i}/{len(QUERIES)}] {endpoint} ({qtype}): {payload.get('query', payload.get('url', ''))[:50]}")
+            print(
+                f"  [{i}/{len(QUERIES)}] {endpoint} ({qtype}): {payload.get('query', payload.get('q', payload.get('url', '')))[:50]}"
+            )
 
-            result = await measure_endpoint(client, endpoint, payload)
-            result["query"] = payload.get("query", payload.get("url", ""))
+            result = await measure_endpoint(client, endpoint, payload, method=method)
+            result["query"] = payload.get("query", payload.get("q", payload.get("url", "")))
             result["type"] = qtype
             results.append(result)
 
             if result["p50_ms"] is not None:
-                print(f"      P50={result['p50_ms']}ms  P95={result['p95_ms']}ms  results={result['result_count']}")
+                print(
+                    f"      P50={result['p50_ms']}ms  P95={result['p95_ms']}ms  results={result['result_count']}"
+                )
             else:
                 print(f"      ERROR: {result.get('error', 'unknown')}")
 
@@ -173,7 +188,11 @@ async def main() -> None:
             "queries": len(items),
             "p50_ms": round(statistics.median(p50s), 1) if p50s else None,
             "p95_ms": round(statistics.median(p95s), 1) if p95s else None,
-            "avg_ms": round(statistics.mean([x["avg_ms"] for x in items if x["avg_ms"] is not None]), 1) if any(x["avg_ms"] for x in items) else None,
+            "avg_ms": round(
+                statistics.mean([x["avg_ms"] for x in items if x["avg_ms"] is not None]), 1
+            )
+            if any(x["avg_ms"] for x in items)
+            else None,
             "total_results": total_results,
             "zero_result_queries": sum(1 for x in items if x["result_count"] == 0),
             "errors": total_errors,

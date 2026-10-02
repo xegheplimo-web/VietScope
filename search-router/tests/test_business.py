@@ -620,3 +620,16 @@ class TestLocalDiscoveryHedging:
         data = resp.json()
         assert "local_expand" in data["provider"]
         assert "web" in data["provider"]
+
+
+class TestInferCategoryFolded:
+    def test_accentless_text_matches_folded_marker(self):
+        from core.business_entity import _infer_category
+
+        # "quan ca phe" carries no accents — only the folded fallback hits.
+        assert _infer_category("QUAN CA PHE 24H - WI-FI FREE", "") == "cafe"
+
+    def test_accented_marker_still_first(self):
+        from core.business_entity import _infer_category
+
+        assert _infer_category("quán cà phê sân vườn", "") == "cafe"

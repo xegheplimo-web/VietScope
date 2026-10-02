@@ -500,3 +500,18 @@ class BusinessEntity(BaseModel):
     )
     description: str = Field(default="", description="Short description or snippet")
     source_url: str = Field(default="", description="URL this entity was extracted from")
+    # LOCAL-1 output contract — additive, defaults keep every existing
+    # constructor call and wire consumer working.
+    origin: str = Field(
+        default="",
+        description="Lane that produced the entity: canonical | osm_local | osm_live | web_discovery",
+    )
+    verified: bool = Field(
+        default=False, description="True only for entities from the canonical lane"
+    )
+    location_precision: str = Field(
+        default="unknown", description="exact | street | area | unknown"
+    )
+    supporting_source_count: int = Field(
+        default=1, description="Distinct source URLs merged into this entity"
+    )

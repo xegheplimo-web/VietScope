@@ -339,6 +339,12 @@
             "description": "Latitude (WGS84)",
             "title": "Lat"
           },
+          "location_precision": {
+            "default": "unknown",
+            "description": "exact | street | area | unknown",
+            "title": "Location Precision",
+            "type": "string"
+          },
           "lon": {
             "anyOf": [
               {
@@ -354,6 +360,12 @@
           "name": {
             "description": "Business name",
             "title": "Name",
+            "type": "string"
+          },
+          "origin": {
+            "default": "",
+            "description": "Lane that produced the entity: canonical | osm_local | osm_live | web_discovery",
+            "title": "Origin",
             "type": "string"
           },
           "phone": {
@@ -399,6 +411,18 @@
             "description": "URL this entity was extracted from",
             "title": "Source Url",
             "type": "string"
+          },
+          "supporting_source_count": {
+            "default": 1,
+            "description": "Distinct source URLs merged into this entity",
+            "title": "Supporting Source Count",
+            "type": "integer"
+          },
+          "verified": {
+            "default": false,
+            "description": "True only for entities from the canonical lane",
+            "title": "Verified",
+            "type": "boolean"
           },
           "website": {
             "anyOf": [
@@ -3779,7 +3803,7 @@
     },
     "/v1/business/search": {
       "post": {
-        "description": "Local business search: anchor \u2192 PostGIS \u2192 OSM \u2192 web-extract.",
+        "description": "Local business search: anchor \u2192 hedged local lanes \u2192 widen \u2192 web-extract.\n\nLOCAL-1: the fast local lanes (canonical store, osm_pois mirror, query\nexpansion) run concurrently at t=0; the local quality gate then decides\nwhether the request widens to live Overpass + web extraction.",
         "operationId": "business_search_v1_business_search_post",
         "requestBody": {
           "content": {

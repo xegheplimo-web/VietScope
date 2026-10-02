@@ -169,9 +169,15 @@ async def main() -> None:
         print(f"  {k}: {v}")
     print("=" * 72)
 
-    out_dir = Path(__file__).resolve().parents[1] / "baseline"
+    out_dir = (Path(__file__).resolve().parents[1] / "baseline").resolve()
     out_dir.mkdir(exist_ok=True)
-    out_path = Path(args.out) if args.out else out_dir / f"local1_{args.label}.json"
+    if args.out:
+        # --out is a file name inside baseline/, never an arbitrary path.
+        out_path = (out_dir / args.out).resolve()
+        if not out_path.is_relative_to(out_dir):
+            raise SystemExit(f"--out must resolve inside {out_dir}")
+    else:
+        out_path = out_dir / f"local1_{args.label}.json"
     out_path.write_text(
         json.dumps({"summary": summary, "queries": results}, indent=2, ensure_ascii=False) + "\n",
         encoding="utf-8",

@@ -1472,7 +1472,7 @@ async def business_search(req: BusinessSearchRequest):
     lanes: list[str] = []
     lat, lon = req.lat, req.lon
     anchor: GeoAnchor | None = None
-    first_result_at: float | None = None
+    first_done_at: list[float] = []
 
     if lat is None or lon is None:
         point, resolved_from = await _resolve_geo_anchor(req.query)
@@ -1496,9 +1496,8 @@ async def business_search(req: BusinessSearchRequest):
     locality = locality_of(req.query)
 
     def _mark_first(done: float, results: list) -> None:
-        nonlocal first_result_at
-        if results and (first_result_at is None or done < first_result_at):
-            first_result_at = done
+        if results:
+            first_done_at.append(done)
 
     # ── t=0: fast local lanes run concurrently; any lane may degrade to [] ──
     local_jobs = []
@@ -1533,6 +1532,8 @@ async def business_search(req: BusinessSearchRequest):
     sufficient, reason = evaluate_local_quality(
         entities,
         requested_limit=req.limit,
+        query=req.query,
+        category=req.category or "",
         specialty=specialty,
         specialty_variants=specialty_variants,
     )
@@ -1619,7 +1620,7 @@ async def business_search(req: BusinessSearchRequest):
     entities = entities[: req.limit]
 
     total_ms = (time.perf_counter() - t0) * 1000.0
-    first_ms = (first_result_at - t0) * 1000.0 if first_result_at is not None else None
+    first_ms = (min(first_done_at) - t0) * 1000.0 if first_done_at else None
     observe_local_outcome(total_ms, first_ms, len(entities))
 
     evidence = [e.source_url for e in entities if e.source_url]

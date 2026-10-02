@@ -25,18 +25,19 @@ from urllib.parse import urlparse
 
 from core.business_entity import category_for, osm_tag_kv
 from models import BusinessEntity, SearchCategory
+from storage.business_store import BusinessStore
+
 from services.admin import admin_anchor
 from services.geo import GeoPoint, geocode
 from services.geo_postgis import osm_pois_nearby
-from storage.business_store import BusinessStore
 
 logger = logging.getLogger(__name__)
 
 # ─── Bounded expansion limits ────────────────────────────────────────────────
 
 MAX_EXPANSIONS = 6
-MAX_EXTERNAL_QUERIES = 3       # q0 + top-2 expansions into web
-EXTERNAL_DEADLINE_S = 2.5      # hard cancel on external widen
+MAX_EXTERNAL_QUERIES = 3  # q0 + top-2 expansions into web
+EXTERNAL_DEADLINE_S = 2.5  # hard cancel on external widen
 
 # ─── Vietnamese specialty lexicon ────────────────────────────────────────────
 
@@ -52,6 +53,7 @@ _SPECIALTY_LEXICON: dict[str, list[str]] = {
 
 
 # ─── Query understanding ─────────────────────────────────────────────────────
+
 
 @dataclass
 class QueryIntent:
@@ -133,6 +135,7 @@ async def _understand(query: str, lat: float | None, lon: float | None) -> Query
 
 # ─── Query expansion ─────────────────────────────────────────────────────────
 
+
 def _expand_queries(intent: QueryIntent) -> list[str]:
     """Deterministic bounded query expansion — no LLM."""
     variants: list[str] = [intent.original]
@@ -159,6 +162,7 @@ def _expand_queries(intent: QueryIntent) -> list[str]:
 
 # ─── Dedup helpers ───────────────────────────────────────────────────────────
 
+
 def _normalize_phone(phone: str | None) -> str | None:
     if not phone:
         return None
@@ -182,6 +186,7 @@ def _normalize_text(text: str) -> str:
 
 def _name_similarity(a: str, b: str) -> float:
     from core.entity_resolver import fold
+
     a_tokens = set(fold(a).split())
     b_tokens = set(fold(b).split())
     if not a_tokens or not b_tokens:
@@ -209,26 +214,42 @@ def _dedup_candidates(candidates: list[BusinessEntity]) -> list[BusinessEntity]:
         merged = False
         for group in groups:
             rep = group[0]
-            if rep.phone and cand.phone and _normalize_phone(rep.phone) == _normalize_phone(cand.phone):
+            if (
+                rep.phone
+                and cand.phone
+                and _normalize_phone(rep.phone) == _normalize_phone(cand.phone)
+            ):
                 group.append(cand)
                 merged = True
                 break
-            if rep.website and cand.website and _normalize_website(rep.website) == _normalize_website(cand.website):
+            if (
+                rep.website
+                and cand.website
+                and _normalize_website(rep.website) == _normalize_website(cand.website)
+            ):
                 group.append(cand)
                 merged = True
                 break
-            if rep.lat and rep.lon and cand.lat and cand.lon:
-                if _name_similarity(rep.name, cand.name) >= 0.8:
-                    dist = _geo_distance_m(rep.lat, rep.lon, cand.lat, cand.lon)
-                    if dist < 100:
-                        group.append(cand)
-                        merged = True
-                        break
-            if rep.address and cand.address and _name_similarity(rep.name, cand.name) >= 0.9:
-                if _normalize_text(rep.address) == _normalize_text(cand.address):
-                    group.append(cand)
-                    merged = True
-                    break
+            if (
+                rep.lat
+                and rep.lon
+                and cand.lat
+                and cand.lon
+                and _name_similarity(rep.name, cand.name) >= 0.8
+                and _geo_distance_m(rep.lat, rep.lon, cand.lat, cand.lon) < 100
+            ):
+                group.append(cand)
+                merged = True
+                break
+            if (
+                rep.address
+                and cand.address
+                and _name_similarity(rep.name, cand.name) >= 0.9
+                and _normalize_text(rep.address) == _normalize_text(cand.address)
+            ):
+                group.append(cand)
+                merged = True
+                break
         if not merged:
             groups.append([cand])
             unique.append(cand)
@@ -237,15 +258,14 @@ def _dedup_candidates(candidates: list[BusinessEntity]) -> list[BusinessEntity]:
 
 # ─── Quality gate ───────────────────────────────────────────────────────────
 
+
 def _category_compatible(cat: str, target: str) -> bool:
     if not cat:
         return True
     if cat == target:
         return True
     food_cats = {"restaurant", "cafe", "food", "bar", "store", "convenience"}
-    if target in food_cats and cat in food_cats:
-        return True
-    return False
+    return target in food_cats and cat in food_cats
 
 
 def _entity_supports_specialty(entity: BusinessEntity, specialty: str, variants: list[str]) -> bool:
@@ -254,10 +274,7 @@ def _entity_supports_specialty(entity: BusinessEntity, specialty: str, variants:
     fold_addr = _normalize_text(entity.address)
     all_text = f"{fold_name} {fold_desc} {fold_addr}"
     forms = [specialty] + variants
-    for form in forms:
-        if form in all_text:
-            return True
-    return False
+    return any(form in all_text for form in forms)
 
 
 def _assess_quality(
@@ -278,7 +295,9 @@ def _assess_quality(
         is_category_match = _category_compatible(e.category, intent.broad_category)
         if is_category_match:
             exact_category += 1
-        has_specialty = bool(intent.specialty) and _entity_supports_specialty(e, intent.specialty, intent.specialty_variants)
+        has_specialty = bool(intent.specialty) and _entity_supports_specialty(
+            e, intent.specialty, intent.specialty_variants
+        )
         if has_specialty:
             specialty_matches += 1
         is_geo_relevant = True
@@ -310,11 +329,14 @@ def _assess_quality(
         "complete_count": complete,
         "unique_count": len(candidates),
         "sufficient": sufficient,
-        "reason": f"useful={useful}, geo={geo_relevant}, specialty={specialty_matches}" if not sufficient else "ok",
+        "reason": f"useful={useful}, geo={geo_relevant}, specialty={specialty_matches}"
+        if not sufficient
+        else "ok",
     }
 
 
 # ─── Ranking ─────────────────────────────────────────────────────────────────
+
 
 def _rank_candidates(
     candidates: list[BusinessEntity],
@@ -332,7 +354,9 @@ def _rank_candidates(
         score += (overlap / max(len(terms), 1)) * 0.25
         if _category_compatible(e.category, intent.broad_category):
             score += 0.20
-        if intent.specialty and _entity_supports_specialty(e, intent.specialty, intent.specialty_variants):
+        if intent.specialty and _entity_supports_specialty(
+            e, intent.specialty, intent.specialty_variants
+        ):
             score += 0.30
         if lat and lon and e.lat and e.lon:
             dist = _geo_distance_m(lat, lon, e.lat, e.lon)
@@ -348,6 +372,7 @@ def _rank_candidates(
 
 
 # ─── LocalDiscoveryService ──────────────────────────────────────────────────
+
 
 class LocalDiscoveryService:
     """Shared local discovery service for `/v1/business/search`."""
@@ -396,7 +421,7 @@ class LocalDiscoveryService:
         if need_widen:
             t = time.perf_counter()
             external_candidates, ext_lanes = await self._external_widen(
-                intent, effective_lat, effective_lon, radius_km, limit - len(local_candidates)
+                intent, limit - len(local_candidates)
             )
             all_timings["external_ms"] = (time.perf_counter() - t) * 1000.0
             lanes.extend(ext_lanes)
@@ -431,7 +456,9 @@ class LocalDiscoveryService:
             v for k, v in all_timings.items() if k.endswith("_ms") and k != "total_ms"
         )
 
-        quality_final = _assess_quality(all_candidates, intent, effective_lat, effective_lon, radius_km)
+        quality_final = _assess_quality(
+            all_candidates, intent, effective_lat, effective_lon, radius_km
+        )
 
         return LocalDiscoveryResult(
             matches=matches,
@@ -474,16 +501,13 @@ class LocalDiscoveryService:
     async def _external_widen(
         self,
         intent: QueryIntent,
-        lat: float | None,
-        lon: float | None,
-        radius_km: float,
         remaining: int,
     ) -> tuple[list[BusinessEntity], list[str]]:
         """Run external web discovery with a hard deadline."""
         from core.business_entity import extract_business_batch
         from core.inference_gateway import get_inference_gateway
-        from providers.searxng import searxng_search
         from providers.ddgs import ddgs_search
+        from providers.searxng import searxng_search
 
         queries = _expand_queries(intent)[:MAX_EXTERNAL_QUERIES]
         lanes: list[str] = []
@@ -502,6 +526,7 @@ class LocalDiscoveryService:
                 else:
                     return []
                 from models import Source
+
                 sources = [
                     Source(
                         source_id=f"{provider_name}:{i}",
@@ -519,7 +544,9 @@ class LocalDiscoveryService:
                 urls = [s.url for s in sources]
                 inference = get_inference_gateway()
                 llm = inference if inference.api_key else None
-                entities = await extract_business_batch(contents, intent.original, llm=llm, source_urls=urls)
+                entities = await extract_business_batch(
+                    contents, intent.original, llm=llm, source_urls=urls
+                )
                 return entities
             except Exception as exc:
                 logger.info("External provider %s failed: %s", provider_name, exc)
@@ -541,7 +568,7 @@ class LocalDiscoveryService:
                     all_entities.extend(result)
             if all_entities:
                 lanes.append("web")
-        except asyncio.TimeoutError:
+        except TimeoutError:
             logger.info("External widen timed out after %.1fs", EXTERNAL_DEADLINE_S)
             lanes.append("web_timeout")
 

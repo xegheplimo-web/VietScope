@@ -28,12 +28,13 @@ from urllib.parse import urlparse
 
 from models import BusinessEntity
 
+from core.business_entity import category_for
 from core.entity_resolver import fold
 from observability.prometheus import observe_local_expansion, observe_local_lane
 
 _WS_RE = re.compile(r"\s+")
-_TRAIL_RE = re.compile(r"[\s?.!]+$")
 _DIGITS_RE = re.compile(r"\D+")
+_TRAIL_CHARS = " \t\n\r?.!"
 
 # surface forms → substitute synonyms, ordered most-specific first; the
 # longest trigger match wins so "quán ăn đêm" beats "quán ăn".
@@ -110,17 +111,38 @@ _SPECIALTY_LEXICON: dict[str, tuple[str, ...]] = {
 }
 
 
+# (specialty, variants, folded forms) — matching happens on folded token
+# spans so accentless queries ("gio cha", "nha thuoc") resolve too.
+_FOLDED_SPECIALTY: tuple[tuple[str, tuple[str, ...], tuple[str, ...]], ...] = tuple(
+    (specialty, variants, tuple(dict.fromkeys(fold(f) for f in (specialty,) + variants)))
+    for specialty, variants in _SPECIALTY_LEXICON.items()
+)
+
+
+def _span_end(tokens: list[str], forms: tuple[str, ...]) -> int | None:
+    """End index of the longest folded multi-token ``forms`` match in ``tokens``."""
+    best_end: int | None = None
+    best_len = 0
+    for form in forms:
+        ft = form.split()
+        n = len(ft)
+        if not n or n <= best_len:
+            continue
+        for i in range(len(tokens) - n + 1):
+            if tokens[i : i + n] == ft:
+                best_len, best_end = n, i + n
+    return best_end
+
+
 def extract_specialty(query: str) -> tuple[str | None, tuple[str, ...]]:
     """Detect specialty/product intent from the query (deterministic, no LLM).
 
     Returns ``(specialty, variants)`` or ``(None, ())``.
     """
-    fold_q = fold(query)
-    for specialty, variants in _SPECIALTY_LEXICON.items():
-        forms = (specialty,) + variants
-        for form in forms:
-            if form in fold_q:
-                return specialty, variants
+    fold_tokens = fold(query).split()
+    for specialty, variants, folded_forms in _FOLDED_SPECIALTY:
+        if _span_end(fold_tokens, folded_forms) is not None:
+            return specialty, variants
     return None, ()
 
 
@@ -128,13 +150,13 @@ def entity_supports_specialty(
     entity: BusinessEntity, specialty: str, variants: tuple[str, ...]
 ) -> bool:
     """True when the entity's name/description/address mention the specialty."""
-    all_text = _norm_text(f"{entity.name} {entity.description} {entity.address}")
-    forms = (specialty,) + variants
-    return any(form in all_text for form in forms)
+    all_tokens = _norm_text(f"{entity.name} {entity.description} {entity.address}").split()
+    forms = tuple(fold(f) for f in (specialty,) + variants)
+    return _span_end(all_tokens, forms) is not None
 
 
 def _clean(query: str) -> str:
-    return _TRAIL_RE.sub("", _WS_RE.sub(" ", (query or "").strip()))
+    return _WS_RE.sub(" ", (query or "").strip()).rstrip(_TRAIL_CHARS)
 
 
 def _match_category(tokens: list[str]) -> tuple[int, int, tuple[str, ...]] | None:
@@ -164,9 +186,16 @@ def _locality_tail(query: str) -> str:
     orig_tokens = q.split()
     fold_tokens = fold(q).split()
     m = _match_category(fold_tokens)
-    if m is None:
-        return ""
-    _, end, _ = m
+    if m is not None:
+        _, end, _ = m
+    else:
+        # No broad-category phrase — locality trails the specialty span.
+        specialty, variants = extract_specialty(query)
+        if not specialty:
+            return ""
+        end = _span_end(fold_tokens, tuple(fold(f) for f in (specialty,) + variants))
+        if not end:
+            return ""
     tail = list(orig_tokens[end:])
     ftail = list(fold_tokens[end:])
     while ftail and ftail[0] in _PROXIMITY_TOKENS:
@@ -196,11 +225,20 @@ def expand_local_query(query: str, *, max_variants: int = 8) -> list[str]:
 
     fold_tokens = fold(original).split()
     m = _match_category(fold_tokens)
-    if m is None or max_variants <= 1:
+    specialty, specialty_variants = extract_specialty(query)
+    if (m is None and not specialty) or max_variants <= 1:
         return [original]
 
-    _, end, synonyms = m
     orig_tokens = original.split()
+    if m is not None:
+        _, end, synonyms = m
+    else:
+        # No broad-category phrase — locality trails the specialty span so
+        # standalone specialty queries ("giò chả Yên Dũng") still expand.
+        end = _span_end(
+            fold_tokens, tuple(fold(f) for f in (specialty,) + specialty_variants)
+        ) or len(fold_tokens)
+        synonyms = ()
     tail = list(orig_tokens[end:])
     ftail = list(fold_tokens[end:])
     while ftail and ftail[0] in _PROXIMITY_TOKENS:
@@ -209,7 +247,6 @@ def expand_local_query(query: str, *, max_variants: int = 8) -> list[str]:
     locality = " ".join(tail)
 
     # Specialty variants take priority over generic category synonyms
-    specialty, specialty_variants = extract_specialty(query)
     if specialty:
         candidates = [f"{v} {locality}" for v in specialty_variants[:3]] if locality else []
         candidates += list(specialty_variants[:4])
@@ -232,23 +269,56 @@ def expand_local_query(query: str, *, max_variants: int = 8) -> list[str]:
     return out
 
 
+_FOODISH_CATEGORIES = frozenset({"restaurant", "cafe", "food", "bar", "store", "convenience"})
+
+
+def _category_compatible(cat: str, target: str) -> bool:
+    """Same taxonomy comparison as the service path (food-family groups)."""
+    if not cat or not target:
+        return False
+    if cat == target:
+        return True
+    return cat in _FOODISH_CATEGORIES and target in _FOODISH_CATEGORIES
+
+
+def _query_relevant(e: BusinessEntity, target_category: str) -> bool:
+    """The entity's own evidence supports the query's category intent."""
+    if not target_category:
+        return False
+    if _category_compatible((e.category or "").strip(), target_category):
+        return True
+    inferred = category_for(f"{e.name} {e.description} {e.address}")
+    return _category_compatible(inferred, target_category)
+
+
 def evaluate_local_quality(
     entities: list[BusinessEntity],
     *,
     requested_limit: int,
+    query: str = "",
+    category: str = "",
     specialty: str | None = None,
     specialty_variants: tuple[str, ...] = (),
 ) -> tuple[bool, str]:
     """The local recall gate.
 
     ``useful`` = named entities that carry coordinates AND (a category OR a
-    canonical/local-lane origin). When a specialty is present, generic
-    category matches do NOT count — only entities whose name/description/
-    address mention the specialty are useful.
+    canonical/local-lane origin). When ``query``/``category`` is given the
+    entity must also look relevant to that intent — nearby-but-unrelated
+    canonical rows must not close the gate. When a specialty is present,
+    generic category matches do NOT count — only entities whose
+    name/description/address mention the specialty are useful.
 
     Sufficient when ``useful >= min(5, limit)``.
     """
     target = min(5, max(0, requested_limit))
+    target_category = ""
+    if category:
+        # req.category accepts both taxonomy values ("pharmacy") and
+        # surface forms ("nhà thuốc") — classify first, keep raw fallback.
+        target_category = category_for(category) or category.strip().lower()
+    if not target_category and query:
+        target_category = category_for(query)
     useful = 0
     for e in entities or []:
         if not (e.name or "").strip():
@@ -259,9 +329,11 @@ def evaluate_local_quality(
             # Specialty query: only specialty-supporting entities are useful
             if entity_supports_specialty(e, specialty, specialty_variants):
                 useful += 1
-        else:
-            if (e.category or "").strip() or e.origin in _LOCAL_LANE_ORIGINS:
+        elif query or category:
+            if _query_relevant(e, target_category):
                 useful += 1
+        elif (e.category or "").strip() or e.origin in _LOCAL_LANE_ORIGINS:
+            useful += 1
     if useful >= target:
         return True, "sufficient"
     return False, "insufficient_useful"

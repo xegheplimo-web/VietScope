@@ -14,6 +14,7 @@ from __future__ import annotations
 import argparse
 import asyncio
 import json
+import re
 import time
 from pathlib import Path
 from typing import Any
@@ -172,10 +173,11 @@ async def main() -> None:
     out_dir = (Path(__file__).resolve().parents[1] / "baseline").resolve()
     out_dir.mkdir(exist_ok=True)
     if args.out:
-        # --out is a file name inside baseline/, never an arbitrary path.
-        out_path = (out_dir / args.out).resolve()
-        if not out_path.is_relative_to(out_dir):
-            raise SystemExit(f"--out must resolve inside {out_dir}")
+        # --out is a bare file name inside baseline/, never a path — the
+        # allowlist rejects separators and parent references outright.
+        if not re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9._-]*", args.out):
+            raise SystemExit("--out must be a plain file name ([A-Za-z0-9._-], no slashes)")
+        out_path = out_dir / args.out
     else:
         out_path = out_dir / f"local1_{args.label}.json"
     out_path.write_text(

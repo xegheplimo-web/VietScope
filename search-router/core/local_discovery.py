@@ -235,10 +235,11 @@ def expand_local_query(query: str, *, max_variants: int = 8) -> list[str]:
     else:
         # No broad-category phrase — locality trails the specialty span so
         # standalone specialty queries ("giò chả Yên Dũng") still expand.
+        # m is None implies specialty is truthy, so synonyms is never read
+        # on this path (the specialty branch below always wins).
         end = _span_end(
             fold_tokens, tuple(fold(f) for f in (specialty,) + specialty_variants)
         ) or len(fold_tokens)
-        synonyms = ()
     tail = list(orig_tokens[end:])
     ftail = list(fold_tokens[end:])
     while ftail and ftail[0] in _PROXIMITY_TOKENS:

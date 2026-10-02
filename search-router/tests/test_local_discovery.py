@@ -319,7 +319,8 @@ class TestQueryAwareQualityGate:
             _ent("StarMart", category="convenience", lat=21.22, lon=106.15),
         ]
         ok, reason = evaluate_local_quality(ents, requested_limit=1, query="circle k gần tôi")
-        assert ok is True and reason == "sufficient"
+        assert ok is True
+        assert reason == "sufficient"
 
     def test_brand_query_unnamed_entities_do_not_close_gate(self):
         ents = [
@@ -328,7 +329,8 @@ class TestQueryAwareQualityGate:
             _ent("Minimart C", category="store", lat=21.23, lon=106.16),
         ]
         ok, reason = evaluate_local_quality(ents, requested_limit=3, query="circle k gần tôi")
-        assert ok is False and reason == "insufficient_useful"
+        assert ok is False
+        assert reason == "insufficient_useful"
 
 
 class TestCategoryHelpers:

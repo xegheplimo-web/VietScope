@@ -231,14 +231,15 @@ def expand_local_query(query: str, *, max_variants: int = 8) -> list[str]:
 
     orig_tokens = original.split()
     if m is not None:
-        _, end, synonyms = m
+        end = m[1]
     else:
         # No broad-category phrase — locality trails the specialty span so
         # standalone specialty queries ("giò chả Yên Dũng") still expand.
-        # m is None implies specialty is truthy, so synonyms is never read
-        # on this path (the specialty branch below always wins).
+        # m is None implies specialty is truthy, but the guard keeps the
+        # code correct even if that invariant ever changes.
         end = _span_end(
-            fold_tokens, tuple(fold(f) for f in (specialty,) + specialty_variants)
+            fold_tokens,
+            tuple(fold(f) for f in ((specialty,) if specialty else ()) + specialty_variants),
         ) or len(fold_tokens)
     tail = list(orig_tokens[end:])
     ftail = list(fold_tokens[end:])
@@ -252,8 +253,10 @@ def expand_local_query(query: str, *, max_variants: int = 8) -> list[str]:
         candidates = [f"{v} {locality}" for v in specialty_variants[:3]] if locality else []
         candidates += list(specialty_variants[:4])
     else:
-        # locality-qualified synonyms first — they pin the category to the place,
-        # which is the higher-recall shape for the web lane.
+        # m is not None on this path — the early return filters the
+        # "no category, no specialty" pair. locality-qualified synonyms
+        # first: they pin the category to the place (higher recall).
+        synonyms = m[2] if m is not None else ()
         candidates = [f"{syn} {locality}" for syn in synonyms[:3]] if locality else []
         candidates += list(synonyms[:4])
 

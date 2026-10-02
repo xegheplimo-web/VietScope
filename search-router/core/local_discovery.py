@@ -288,17 +288,18 @@ def _category_compatible(cat: str, target: str) -> bool:
 def _query_relevant(e: BusinessEntity, query: str, target_category: str) -> bool:
     """The entity's own evidence supports the query's intent.
 
-    Category match when a target category was inferred; otherwise the
-    entity's name must surface in the query — brand/place-name lookups
-    ("Circle K gần tôi") classify to nothing, so without name evidence
-    the gate would widen on every such request.
+    Category match when a target category was inferred. Only when nothing
+    classified does the entity's name count — brand/place-name lookups
+    ("Circle K gần tôi") classify to nothing, so without name evidence the
+    gate would widen on every such request. Name matching under a resolved
+    category would rubber-stamp off-category entities that merely share a
+    locality token ("Quán ăn Yên Dũng" for "nhà thuốc Yên Dũng").
     """
     if target_category:
         if _category_compatible((e.category or "").strip(), target_category):
             return True
         inferred = category_for(f"{e.name} {e.description} {e.address}")
-        if _category_compatible(inferred, target_category):
-            return True
+        return _category_compatible(inferred, target_category)
     q_tokens = set(fold(query).split())
     return any(len(tok) >= 3 and tok in q_tokens for tok in fold(e.name or "").split())
 
@@ -317,8 +318,9 @@ def evaluate_local_quality(
     ``useful`` = named entities that carry coordinates AND (a category OR a
     canonical/local-lane origin). When ``query``/``category`` is given the
     entity must also look relevant to that intent — a compatible category,
-    or its name appearing in the query — nearby-but-unrelated canonical rows
-    must not close the gate. When a specialty is present,
+    or (when no category could be inferred) its name appearing in the query
+    — nearby-but-unrelated canonical rows must not close the gate. When a
+    specialty is present,
     generic category matches do NOT count — only entities whose
     name/description/address mention the specialty are useful.
 

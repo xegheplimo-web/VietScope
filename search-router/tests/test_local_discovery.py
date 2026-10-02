@@ -332,6 +332,16 @@ class TestQueryAwareQualityGate:
         assert ok is False
         assert reason == "insufficient_useful"
 
+    def test_same_locality_names_do_not_close_gate(self):
+        ents = [
+            _ent("Quán ăn Yên Dũng A", category="restaurant", lat=21.21, lon=106.14),
+            _ent("Nhà hàng Yên Dũng B", category="restaurant", lat=21.22, lon=106.15),
+            _ent("Phở Yên Dũng C", category="restaurant", lat=21.23, lon=106.16),
+        ]
+        ok, reason = evaluate_local_quality(ents, requested_limit=3, query="nhà thuốc Yên Dũng")
+        assert ok is False
+        assert reason == "insufficient_useful"
+
 
 class TestCategoryHelpers:
     def test_empty_inputs(self):
@@ -354,6 +364,11 @@ class TestCategoryHelpers:
         assert _query_relevant(e, "circle k gần tôi", "") is True
         other = _ent("StarMart - Hoàn Kiếm", category="convenience")
         assert _query_relevant(other, "circle k gần tôi", "") is False
+
+    def test_name_fallback_skipped_when_classified(self):
+        # Same-locality name tokens must not rubber-stamp off-category entities.
+        e = _ent("Quán ăn Yên Dũng", category="restaurant")
+        assert _query_relevant(e, "nhà thuốc Yên Dũng", "pharmacy") is False
 
 
 class TestFoldedSpecialty:

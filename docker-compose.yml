@@ -225,7 +225,7 @@ services:
 
   firecrawl-foundationdb:
     container_name: firecrawl-foundationdb
-    image: foundationdb/foundationdb:7.3.63
+    image: foundationdb/foundationdb:7.4.8
     environment:
       FDB_NETWORKING_MODE: container
       FDB_COORDINATOR_PORT: "4500"

@@ -667,7 +667,7 @@ services:
     networks: [search-hub-net]
 
   otel-collector:
-    image: otel/opentelemetry-collector-contrib:0.136.0
+    image: otel/opentelemetry-collector-contrib:0.161.0-386
     profiles: ["observability"]
     command: ["--config=/etc/otelcol-contrib/config.yaml"]
     volumes:

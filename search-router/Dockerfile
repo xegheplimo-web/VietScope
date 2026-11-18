@@ -1,7 +1,7 @@
 # syntax=docker/dockerfile:1
 
 # ── Builder: resolve + install deps from the frozen lock ─────────────
-FROM python:3.12-slim AS builder
+FROM python:3.15-slim AS builder
 
 # uv binary only — version pinned for reproducible builds
 COPY --from=ghcr.io/astral-sh/uv:0.12.18 /uv /usr/local/bin/uv
@@ -18,7 +18,7 @@ COPY pyproject.toml uv.lock ./
 RUN uv sync --frozen --no-dev --compile-bytecode
 
 # ── Runtime: slim, non-root, no toolchain ────────────────────────────
-FROM python:3.12-slim
+FROM python:3.15-slim
 
 # curl is needed by HEALTHCHECK
 RUN apt-get update && apt-get install -y --no-install-recommends \
